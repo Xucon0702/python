@@ -87,6 +87,10 @@ if __name__ == "__main__":
     #调用其他文件接口
     base.base_veh.C_base_veh.CalCornerCoordinate()  #调用其他文件中的函数(目录.文件.类.函数)
     print("AXIS_DISTANCE222: ",base.base_veh.AXIS_DISTANCE)
+    #结构体使用
+    # base.base_veh.C_base_veh()     #定义结构对象
+    # print(a.x,a.y,a.yaw)
+
 
     #决策泊入dr显示
     data = np.loadtxt(decision_dr_writePath)
