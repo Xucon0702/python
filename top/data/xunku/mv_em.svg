@@ -1,0 +1,853 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="662" onload="init(evt)" viewBox="0 0 1200 662" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="662.0" fill="url(#background)"  />
+<text id="title" x="600.00" y="24" >Flame Graph</text>
+<text id="details" x="10.00" y="645" > </text>
+<text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1090.00" y="24" >Search</text>
+<text id="ignorecase" x="1174.00" y="24" >ic</text>
+<text id="matched" x="1090.00" y="645" > </text>
+<g id="frames">
+<g >
+<title>KeepAlive (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="597" width="1134.9" height="15.0" fill="rgb(251,222,34)" rx="2" ry="2" />
+<text  x="13.00" y="607.5" >KeepAlive</text>
+</g>
+<g >
+<title>_raw_write_lock_irqsave (21,590,783 samples, 1.92%)</title><rect x="151.1" y="85" width="22.7" height="15.0" fill="rgb(239,13,1)" rx="2" ry="2" />
+<text  x="154.14" y="95.5" >_..</text>
+</g>
+<g >
+<title>el0_svc (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="325" width="78.8" height="15.0" fill="rgb(235,183,20)" rx="2" ry="2" />
+<text  x="1009.43" y="335.5" >el0_svc</text>
+</g>
+<g >
+<title>std::__cxx11::basic_stringstream&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::basic_stringstream (156,446,640 samples, 13.94%)</title><rect x="770.0" y="277" width="164.5" height="15.0" fill="rgb(229,198,39)" rx="2" ry="2" />
+<text  x="773.00" y="287.5" >std::__cxx11::basic_s..</text>
+</g>
+<g >
+<title>iox::posix::PosixCallVerificator&lt;long&gt;::PosixCallVerificator (31,016,344 samples, 2.76%)</title><rect x="238.4" y="261" width="32.6" height="15.0" fill="rgb(233,222,31)" rx="2" ry="2" />
+<text  x="241.41" y="271.5" >io..</text>
+</g>
+<g >
+<title>unix_stream_connect (22,410,443 samples, 2.00%)</title><rect x="214.8" y="85" width="23.6" height="15.0" fill="rgb(223,175,34)" rx="2" ry="2" />
+<text  x="217.85" y="95.5" >u..</text>
+</g>
+<g >
+<title>__dynamic_cast@plt (85,809,285 samples, 7.65%)</title><rect x="770.0" y="229" width="90.2" height="15.0" fill="rgb(232,135,49)" rx="2" ry="2" />
+<text  x="773.00" y="239.5" >__dynamic_..</text>
+</g>
+<g >
+<title>std::use_facet&lt;std::ctype&lt;char&gt; &gt; (22,989,616 samples, 2.05%)</title><rect x="860.2" y="245" width="24.2" height="15.0" fill="rgb(209,11,1)" rx="2" ry="2" />
+<text  x="863.23" y="255.5" >s..</text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="549" width="45.1" height="15.0" fill="rgb(214,179,17)" rx="2" ry="2" />
+<text  x="1147.90" y="559.5" >[lib..</text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="485" width="1134.9" height="15.0" fill="rgb(222,56,6)" rx="2" ry="2" />
+<text  x="13.00" y="495.5" >std::__invoke&lt;void </text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::expected (38,733,212 samples, 3.45%)</title><rect x="1085.2" y="405" width="40.7" height="15.0" fill="rgb(232,82,18)" rx="2" ry="2" />
+<text  x="1088.19" y="415.5" >iox..</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::SemaphoreWaitState, iox::posix::SemaphoreError&gt;::call_element_destructor@plt (27,800,184 samples, 2.48%)</title><rect x="959.4" y="421" width="29.2" height="15.0" fill="rgb(244,36,26)" rx="2" ry="2" />
+<text  x="962.36" y="431.5" >io..</text>
+</g>
+<g >
+<title>iox::posix::internal::PosixCallDetails&lt;long&gt;::PosixCallDetails (24,652,824 samples, 2.20%)</title><rect x="271.0" y="245" width="25.9" height="15.0" fill="rgb(252,24,6)" rx="2" ry="2" />
+<text  x="274.03" y="255.5" >i..</text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::append@plt (19,979,229 samples, 1.78%)</title><rect x="332.3" y="277" width="21.0" height="15.0" fill="rgb(219,35,19)" rx="2" ry="2" />
+<text  x="335.29" y="287.5" ></text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="469" width="45.1" height="15.0" fill="rgb(243,90,19)" rx="2" ry="2" />
+<text  x="1147.90" y="479.5" >std:..</text>
+</g>
+<g >
+<title>skb_queue_tail (19,792,186 samples, 1.76%)</title><rect x="113.1" y="101" width="20.8" height="15.0" fill="rgb(230,136,34)" rx="2" ry="2" />
+<text  x="116.11" y="111.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="341" width="78.8" height="15.0" fill="rgb(251,115,19)" rx="2" ry="2" />
+<text  x="1009.43" y="351.5" >el0_sync_..</text>
+</g>
+<g >
+<title>std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::_M_cache_locale (85,809,285 samples, 7.65%)</title><rect x="770.0" y="245" width="90.2" height="15.0" fill="rgb(215,121,42)" rx="2" ry="2" />
+<text  x="773.00" y="255.5" >std::basic..</text>
+</g>
+<g >
+<title>do_el0_svc (119,165,609 samples, 10.62%)</title><rect x="113.1" y="165" width="125.3" height="15.0" fill="rgb(211,210,39)" rx="2" ry="2" />
+<text  x="116.11" y="175.5" >do_el0_svc</text>
+</g>
+<g >
+<title>__ksize (20,658,278 samples, 1.84%)</title><rect x="173.8" y="37" width="21.8" height="15.0" fill="rgb(244,94,23)" rx="2" ry="2" />
+<text  x="176.84" y="47.5" >_..</text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (16,371,207 samples, 1.46%)</title><rect x="133.9" y="85" width="17.2" height="15.0" fill="rgb(229,8,29)" rx="2" ry="2" />
+<text  x="136.92" y="95.5" ></text>
+</g>
+<g >
+<title>iox_sendto (136,899,280 samples, 12.20%)</title><rect x="94.5" y="245" width="143.9" height="15.0" fill="rgb(243,39,12)" rx="2" ry="2" />
+<text  x="97.47" y="255.5" >iox_sendto</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::call_element_destructor@plt (17,301,066 samples, 1.54%)</title><rect x="1107.7" y="373" width="18.2" height="15.0" fill="rgb(252,131,2)" rx="2" ry="2" />
+<text  x="1110.72" y="383.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="453" width="45.1" height="15.0" fill="rgb(222,124,23)" rx="2" ry="2" />
+<text  x="1147.90" y="463.5" >iox:..</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="501" width="45.1" height="15.0" fill="rgb(247,29,46)" rx="2" ry="2" />
+<text  x="1147.90" y="511.5" >std:..</text>
+</g>
+<g >
+<title>iox::runtime::IpcRuntimeInterface::sendKeepalive (887,600,886 samples, 79.09%)</title><rect x="26.1" y="325" width="933.3" height="15.0" fill="rgb(252,160,22)" rx="2" ry="2" />
+<text  x="29.06" y="335.5" >iox::runtime::IpcRuntimeInterface::sendKeepalive</text>
+</g>
+<g >
+<title>xxxKeepAlive (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="597" width="45.1" height="15.0" fill="rgb(210,71,4)" rx="2" ry="2" />
+<text  x="1147.90" y="607.5" >xxxK..</text>
+</g>
+<g >
+<title>iox::runtime::PoshRuntimeImpl::sendKeepAliveAndHandleShutdownPreparation (902,878,399 samples, 80.45%)</title><rect x="10.0" y="341" width="949.4" height="15.0" fill="rgb(241,111,54)" rx="2" ry="2" />
+<text  x="13.00" y="351.5" >iox::runtime::PoshRuntimeImpl::sendKeepAliveAndHandleShutdownPreparation</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (902,878,399 samples, 80.45%)</title><rect x="10.0" y="405" width="949.4" height="15.0" fill="rgb(245,8,54)" rx="2" ry="2" />
+<text  x="13.00" y="415.5" >iox::cxx::function_ref&lt;void </text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="469" width="1134.9" height="15.0" fill="rgb(205,189,18)" rx="2" ry="2" />
+<text  x="13.00" y="479.5" >std::__invoke_impl&lt;void, void </text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::IpcMessage (449,121,754 samples, 40.02%)</title><rect x="297.8" y="309" width="472.2" height="15.0" fill="rgb(220,5,48)" rx="2" ry="2" />
+<text  x="300.76" y="319.5" >iox::runtime::IpcMessage::IpcMessage</text>
+</g>
+<g >
+<title>[libc-2.30.so] (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="581" width="45.1" height="15.0" fill="rgb(219,90,35)" rx="2" ry="2" />
+<text  x="1147.90" y="591.5" >[lib..</text>
+</g>
+<g >
+<title>std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::_M_cache_locale (396,302,545 samples, 35.31%)</title><rect x="353.3" y="245" width="416.7" height="15.0" fill="rgb(220,196,33)" rx="2" ry="2" />
+<text  x="356.30" y="255.5" >std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::_M_cache_..</text>
+</g>
+<g >
+<title>sock_alloc_send_pskb (20,658,278 samples, 1.84%)</title><rect x="173.8" y="85" width="21.8" height="15.0" fill="rgb(254,162,42)" rx="2" ry="2" />
+<text  x="176.84" y="95.5" >s..</text>
+</g>
+<g >
+<title>iox::cxx::internal::methodCallbackCaller&lt;void, iox::runtime::PoshRuntimeImpl&gt; (902,878,399 samples, 80.45%)</title><rect x="10.0" y="357" width="949.4" height="15.0" fill="rgb(224,27,24)" rx="2" ry="2" />
+<text  x="13.00" y="367.5" >iox::cxx::internal::methodCallbackCaller&lt;void, iox::runtime::PoshRuntimeImpl&gt;</text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (74,897,394 samples, 6.67%)</title><rect x="1006.4" y="373" width="78.8" height="15.0" fill="rgb(240,154,8)" rx="2" ry="2" />
+<text  x="1009.43" y="383.5" >[libpthre..</text>
+</g>
+<g >
+<title>all (1,122,223,299 samples, 100%)</title><rect x="10.0" y="613" width="1180.0" height="15.0" fill="rgb(210,131,23)" rx="2" ry="2" />
+<text  x="13.00" y="623.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::createPosixCallBuilder&lt;int, sem_t*, timespec const*&gt;@plt (18,061,035 samples, 1.61%)</title><rect x="1125.9" y="437" width="19.0" height="15.0" fill="rgb(205,28,15)" rx="2" ry="2" />
+<text  x="1128.91" y="447.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::createPosixCallBuilder&lt;int, int, int, int, void const*, unsigned int&gt; (769,733 samples, 0.07%)</title><rect x="296.9" y="277" width="0.9" height="15.0" fill="rgb(211,50,34)" rx="2" ry="2" />
+<text  x="299.95" y="287.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="309" width="78.8" height="15.0" fill="rgb(222,65,25)" rx="2" ry="2" />
+<text  x="1009.43" y="319.5" >do_el0_svc</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (902,878,399 samples, 80.45%)</title><rect x="10.0" y="389" width="949.4" height="15.0" fill="rgb(206,175,42)" rx="2" ry="2" />
+<text  x="13.00" y="399.5" >iox::cxx::function_ref&lt;void </text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::SemaphoreWaitState, iox::posix::SemaphoreError&gt;::~expected (27,800,184 samples, 2.48%)</title><rect x="959.4" y="437" width="29.2" height="15.0" fill="rgb(243,95,36)" rx="2" ry="2" />
+<text  x="962.36" y="447.5" >io..</text>
+</g>
+<g >
+<title>sendto (136,899,280 samples, 12.20%)</title><rect x="94.5" y="229" width="143.9" height="15.0" fill="rgb(236,87,34)" rx="2" ry="2" />
+<text  x="97.47" y="239.5" >sendto</text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="453" width="1134.9" height="15.0" fill="rgb(222,145,49)" rx="2" ry="2" />
+<text  x="13.00" y="463.5" >iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run</text>
+</g>
+<g >
+<title>std::num_put&lt;char, std::ostreambuf_iterator&lt;char, std::char_traits&lt;char&gt; &gt; &gt;::_M_insert_int&lt;long&gt;@plt (23,641,200 samples, 2.11%)</title><rect x="934.5" y="277" width="24.9" height="15.0" fill="rgb(226,16,34)" rx="2" ry="2" />
+<text  x="937.50" y="287.5" >s..</text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::addEntry&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt; (449,121,754 samples, 40.02%)</title><rect x="297.8" y="293" width="472.2" height="15.0" fill="rgb(228,108,51)" rx="2" ry="2" />
+<text  x="300.76" y="303.5" >iox::runtime::IpcMessage::addEntry&lt;std::__cxx11::basic_string&lt;ch..</text>
+</g>
+<g >
+<title>std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::init (108,798,901 samples, 9.69%)</title><rect x="770.0" y="261" width="114.4" height="15.0" fill="rgb(214,13,14)" rx="2" ry="2" />
+<text  x="773.00" y="271.5" >std::basic_ios..</text>
+</g>
+<g >
+<title>iox::cxx::string&lt;100ul&gt;::operator std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; (19,399,616 samples, 1.73%)</title><rect x="26.1" y="309" width="20.4" height="15.0" fill="rgb(249,43,26)" rx="2" ry="2" />
+<text  x="29.06" y="319.5" ></text>
+</g>
+<g >
+<title>alloc_skb_with_frags (20,658,278 samples, 1.84%)</title><rect x="173.8" y="69" width="21.8" height="15.0" fill="rgb(210,47,43)" rx="2" ry="2" />
+<text  x="176.84" y="79.5" >a..</text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="533" width="1134.9" height="15.0" fill="rgb(225,185,39)" rx="2" ry="2" />
+<text  x="13.00" y="543.5" >std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>__cxxabiv1::__vmi_class_type_info::__do_dyncast (396,302,545 samples, 35.31%)</title><rect x="353.3" y="197" width="416.7" height="15.0" fill="rgb(227,7,3)" rx="2" ry="2" />
+<text  x="356.30" y="207.5" >__cxxabiv1::__vmi_class_type_info::__do_dyncast</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="517" width="45.1" height="15.0" fill="rgb(232,87,43)" rx="2" ry="2" />
+<text  x="1147.90" y="527.5" >std:..</text>
+</g>
+<g >
+<title>iox::cxx::convert::toString&lt;int&gt; (180,087,840 samples, 16.05%)</title><rect x="770.0" y="293" width="189.4" height="15.0" fill="rgb(237,227,49)" rx="2" ry="2" />
+<text  x="773.00" y="303.5" >iox::cxx::convert::toStr..</text>
+</g>
+<g >
+<title>iox::runtime::IpcMessageTypeToString[abi:cxx11] (180,087,840 samples, 16.05%)</title><rect x="770.0" y="309" width="189.4" height="15.0" fill="rgb(238,137,0)" rx="2" ry="2" />
+<text  x="773.00" y="319.5" >iox::runtime::IpcMessage..</text>
+</g>
+<g >
+<title>iox::cxx::MethodCallback&lt;void&gt;::operator (902,878,399 samples, 80.45%)</title><rect x="10.0" y="437" width="949.4" height="15.0" fill="rgb(234,74,11)" rx="2" ry="2" />
+<text  x="13.00" y="447.5" >iox::cxx::MethodCallback&lt;void&gt;::operator</text>
+</g>
+<g >
+<title>std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::init (396,302,545 samples, 35.31%)</title><rect x="353.3" y="261" width="416.7" height="15.0" fill="rgb(242,14,44)" rx="2" ry="2" />
+<text  x="356.30" y="271.5" >std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::init</text>
+</g>
+<g >
+<title>iox::posix::Semaphore::timedWait (130,595,867 samples, 11.64%)</title><rect x="988.6" y="437" width="137.3" height="15.0" fill="rgb(215,114,35)" rx="2" ry="2" />
+<text  x="991.59" y="447.5" >iox::posix::Semap..</text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::expected@plt (24,174,055 samples, 2.15%)</title><rect x="69.0" y="261" width="25.5" height="15.0" fill="rgb(239,118,14)" rx="2" ry="2" />
+<text  x="72.05" y="271.5" >i..</text>
+</g>
+<g >
+<title>el0_sync_handler (119,165,609 samples, 10.62%)</title><rect x="113.1" y="197" width="125.3" height="15.0" fill="rgb(250,81,37)" rx="2" ry="2" />
+<text  x="116.11" y="207.5" >el0_sync_handler</text>
+</g>
+<g >
+<title>iox::runtime::IpcMessageTypeToString[abi:cxx11]@plt (15,277,513 samples, 1.36%)</title><rect x="10.0" y="325" width="16.1" height="15.0" fill="rgb(206,188,41)" rx="2" ry="2" />
+<text  x="13.00" y="335.5" ></text>
+</g>
+<g >
+<title>iox::posix::UnixDomainSocket::send (238,991,676 samples, 21.30%)</title><rect x="46.5" y="293" width="251.3" height="15.0" fill="rgb(233,172,23)" rx="2" ry="2" />
+<text  x="49.46" y="303.5" >iox::posix::UnixDomainSocket::send</text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;long&gt;::evaluate@plt (21,479,440 samples, 1.91%)</title><rect x="46.5" y="277" width="22.5" height="15.0" fill="rgb(238,165,5)" rx="2" ry="2" />
+<text  x="49.46" y="287.5" >i..</text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (74,897,394 samples, 6.67%)</title><rect x="1006.4" y="389" width="78.8" height="15.0" fill="rgb(208,120,53)" rx="2" ry="2" />
+<text  x="1009.43" y="399.5" >[libpthre..</text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;int&gt;::evaluate (38,733,212 samples, 3.45%)</title><rect x="1085.2" y="421" width="40.7" height="15.0" fill="rgb(205,178,36)" rx="2" ry="2" />
+<text  x="1088.19" y="431.5" >iox..</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (902,878,399 samples, 80.45%)</title><rect x="10.0" y="373" width="949.4" height="15.0" fill="rgb(235,81,24)" rx="2" ry="2" />
+<text  x="13.00" y="383.5" >iox::cxx::function_ref&lt;void </text>
+</g>
+<g >
+<title>futex_wait_setup (32,207,751 samples, 2.87%)</title><rect x="1051.3" y="229" width="33.9" height="15.0" fill="rgb(238,92,31)" rx="2" ry="2" />
+<text  x="1054.31" y="239.5" >fu..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="581" width="1134.9" height="15.0" fill="rgb(230,0,26)" rx="2" ry="2" />
+<text  x="13.00" y="591.5" >[libc-2.30.so]</text>
+</g>
+<g >
+<title>unix_dgram_sendmsg (99,373,423 samples, 8.86%)</title><rect x="133.9" y="101" width="104.5" height="15.0" fill="rgb(244,109,49)" rx="2" ry="2" />
+<text  x="136.92" y="111.5" >unix_dgram_s..</text>
+</g>
+<g >
+<title>el0_sync (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="357" width="78.8" height="15.0" fill="rgb(241,82,33)" rx="2" ry="2" />
+<text  x="1009.43" y="367.5" >el0_sync</text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="549" width="1134.9" height="15.0" fill="rgb(248,70,41)" rx="2" ry="2" />
+<text  x="13.00" y="559.5" >[libstdc++.so.6.0.28]</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="293" width="78.8" height="15.0" fill="rgb(206,153,15)" rx="2" ry="2" />
+<text  x="1009.43" y="303.5" >el0_svc_c..</text>
+</g>
+<g >
+<title>__wake_up_sync_key (18,342,712 samples, 1.63%)</title><rect x="195.6" y="69" width="19.2" height="15.0" fill="rgb(216,103,24)" rx="2" ry="2" />
+<text  x="198.56" y="79.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="277" width="78.8" height="15.0" fill="rgb(246,129,54)" rx="2" ry="2" />
+<text  x="1009.43" y="287.5" >__arm64_s..</text>
+</g>
+<g >
+<title>iox::runtime::IpcInterfaceBase::send (238,991,676 samples, 21.30%)</title><rect x="46.5" y="309" width="251.3" height="15.0" fill="rgb(242,174,23)" rx="2" ry="2" />
+<text  x="49.46" y="319.5" >iox::runtime::IpcInterfaceBase::s..</text>
+</g>
+<g >
+<title>std::__cxx11::basic_stringstream&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::basic_stringstream (396,302,545 samples, 35.31%)</title><rect x="353.3" y="277" width="416.7" height="15.0" fill="rgb(253,18,4)" rx="2" ry="2" />
+<text  x="356.30" y="287.5" >std::__cxx11::basic_stringstream&lt;char, std::char_traits&lt;..</text>
+</g>
+<g >
+<title>std::has_facet&lt;std::ctype&lt;char&gt; &gt; (396,302,545 samples, 35.31%)</title><rect x="353.3" y="229" width="416.7" height="15.0" fill="rgb(213,15,31)" rx="2" ry="2" />
+<text  x="356.30" y="239.5" >std::has_facet&lt;std::ctype&lt;char&gt; &gt;</text>
+</g>
+<g >
+<title>iox::posix::internal::createPosixCallBuilder&lt;long, int, void const*, unsigned long, int, sockaddr const*, unsigned int&gt; (24,652,824 samples, 2.20%)</title><rect x="271.0" y="261" width="25.9" height="15.0" fill="rgb(214,140,10)" rx="2" ry="2" />
+<text  x="274.03" y="271.5" >i..</text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="565" width="45.1" height="15.0" fill="rgb(248,173,3)" rx="2" ry="2" />
+<text  x="1147.90" y="575.5" >[lib..</text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;int, sem_t*, timespec const*&gt;::operator (91,862,655 samples, 8.19%)</title><rect x="988.6" y="421" width="96.6" height="15.0" fill="rgb(218,170,26)" rx="2" ry="2" />
+<text  x="991.59" y="431.5" >iox::posix:..</text>
+</g>
+<g >
+<title>__arm64_sys_futex_time32 (22,014,898 samples, 1.96%)</title><rect x="1028.2" y="229" width="23.1" height="15.0" fill="rgb(249,106,9)" rx="2" ry="2" />
+<text  x="1031.16" y="239.5" >_..</text>
+</g>
+<g >
+<title>sock_def_readable (18,342,712 samples, 1.63%)</title><rect x="195.6" y="85" width="19.2" height="15.0" fill="rgb(253,124,43)" rx="2" ry="2" />
+<text  x="198.56" y="95.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (119,165,609 samples, 10.62%)</title><rect x="113.1" y="149" width="125.3" height="15.0" fill="rgb(248,220,44)" rx="2" ry="2" />
+<text  x="116.11" y="159.5" >el0_svc_common...</text>
+</g>
+<g >
+<title>[libc-2.30.so] (19,399,616 samples, 1.73%)</title><rect x="26.1" y="293" width="20.4" height="15.0" fill="rgb(233,28,29)" rx="2" ry="2" />
+<text  x="29.06" y="303.5" ></text>
+</g>
+<g >
+<title>iox_sem_timedwait (74,897,394 samples, 6.67%)</title><rect x="1006.4" y="405" width="78.8" height="15.0" fill="rgb(220,93,9)" rx="2" ry="2" />
+<text  x="1009.43" y="415.5" >iox_sem_t..</text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="485" width="45.1" height="15.0" fill="rgb(218,106,5)" rx="2" ry="2" />
+<text  x="1147.90" y="495.5" >std:..</text>
+</g>
+<g >
+<title>iox::cxx::internal::ReturnSuccess&lt;void&gt;::call&lt;iox::cxx::function_ref&lt;void  (902,878,399 samples, 80.45%)</title><rect x="10.0" y="421" width="949.4" height="15.0" fill="rgb(214,72,43)" rx="2" ry="2" />
+<text  x="13.00" y="431.5" >iox::cxx::internal::ReturnSuccess&lt;void&gt;::call&lt;iox::cxx::function_ref&lt;void </text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (18,342,712 samples, 1.63%)</title><rect x="195.6" y="53" width="19.2" height="15.0" fill="rgb(222,78,7)" rx="2" ry="2" />
+<text  x="198.56" y="63.5" ></text>
+</g>
+<g >
+<title>do_futex (74,884,960 samples, 6.67%)</title><rect x="1006.4" y="261" width="78.8" height="15.0" fill="rgb(222,117,50)" rx="2" ry="2" />
+<text  x="1009.43" y="271.5" >do_futex</text>
+</g>
+<g >
+<title>futex_wait (74,880,988 samples, 6.67%)</title><rect x="1006.4" y="245" width="78.8" height="15.0" fill="rgb(237,229,1)" rx="2" ry="2" />
+<text  x="1009.44" y="255.5" >futex_wait</text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="565" width="1134.9" height="15.0" fill="rgb(207,76,20)" rx="2" ry="2" />
+<text  x="13.00" y="575.5" >[libpthread-2.30.so]</text>
+</g>
+<g >
+<title>el0_sync (119,165,609 samples, 10.62%)</title><rect x="113.1" y="213" width="125.3" height="15.0" fill="rgb(232,115,42)" rx="2" ry="2" />
+<text  x="116.11" y="223.5" >el0_sync</text>
+</g>
+<g >
+<title>__alloc_skb (20,658,278 samples, 1.84%)</title><rect x="173.8" y="53" width="21.8" height="15.0" fill="rgb(233,220,39)" rx="2" ry="2" />
+<text  x="176.84" y="63.5" >_..</text>
+</g>
+<g >
+<title>__dynamic_cast (396,302,545 samples, 35.31%)</title><rect x="353.3" y="213" width="416.7" height="15.0" fill="rgb(242,135,32)" rx="2" ry="2" />
+<text  x="356.30" y="223.5" >__dynamic_cast</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::variant&lt;0ul, iox::posix::PosixCallResult&lt;int&gt; &gt; (17,301,066 samples, 1.54%)</title><rect x="1107.7" y="389" width="18.2" height="15.0" fill="rgb(206,125,54)" rx="2" ry="2" />
+<text  x="1110.72" y="399.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (42,887,814 samples, 3.82%)</title><rect x="1144.9" y="533" width="45.1" height="15.0" fill="rgb(242,12,4)" rx="2" ry="2" />
+<text  x="1147.90" y="543.5" >std:..</text>
+</g>
+<g >
+<title>std::locale::_S_initialize (47,647,739 samples, 4.25%)</title><rect x="884.4" y="261" width="50.1" height="15.0" fill="rgb(230,183,1)" rx="2" ry="2" />
+<text  x="887.40" y="271.5" >std::..</text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;long, int, void const*, unsigned long, int, sockaddr const*, unsigned int&gt;::operator (136,899,280 samples, 12.20%)</title><rect x="94.5" y="261" width="143.9" height="15.0" fill="rgb(205,103,43)" rx="2" ry="2" />
+<text  x="97.47" y="271.5" >iox::posix::PosixC..</text>
+</g>
+<g >
+<title>el0_svc (119,165,609 samples, 10.62%)</title><rect x="113.1" y="181" width="125.3" height="15.0" fill="rgb(236,111,2)" rx="2" ry="2" />
+<text  x="116.11" y="191.5" >el0_svc</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="501" width="1134.9" height="15.0" fill="rgb(206,39,49)" rx="2" ry="2" />
+<text  x="13.00" y="511.5" >std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>__sys_sendto (119,165,609 samples, 10.62%)</title><rect x="113.1" y="117" width="125.3" height="15.0" fill="rgb(232,164,52)" rx="2" ry="2" />
+<text  x="116.11" y="127.5" >__sys_sendto</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::emplace_at_index&lt;0ul, iox::posix::PosixCallResult&lt;int&gt; &gt;@plt (21,432,146 samples, 1.91%)</title><rect x="1085.2" y="389" width="22.5" height="15.0" fill="rgb(213,72,38)" rx="2" ry="2" />
+<text  x="1088.19" y="399.5" >i..</text>
+</g>
+<g >
+<title>iox::posix::UnixDomainSocket::timedSend (216,742,503 samples, 19.31%)</title><rect x="69.0" y="277" width="227.9" height="15.0" fill="rgb(217,196,3)" rx="2" ry="2" />
+<text  x="72.05" y="287.5" >iox::posix::UnixDomainSocket::..</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (1,079,335,485 samples, 96.18%)</title><rect x="10.0" y="517" width="1134.9" height="15.0" fill="rgb(243,196,25)" rx="2" ry="2" />
+<text  x="13.00" y="527.5" >std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>__arm64_sys_sendto (119,165,609 samples, 10.62%)</title><rect x="113.1" y="133" width="125.3" height="15.0" fill="rgb(236,12,8)" rx="2" ry="2" />
+<text  x="116.11" y="143.5" >__arm64_sys_sen..</text>
+</g>
+<g >
+<title>get_futex_key (32,207,751 samples, 2.87%)</title><rect x="1051.3" y="213" width="33.9" height="15.0" fill="rgb(231,97,11)" rx="2" ry="2" />
+<text  x="1054.31" y="223.5" >ge..</text>
+</g>
+</g>
+</svg>

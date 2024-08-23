@@ -1,0 +1,3061 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="662" onload="init(evt)" viewBox="0 0 1200 662" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="662.0" fill="url(#background)"  />
+<text id="title" x="600.00" y="24" >Flame Graph</text>
+<text id="details" x="10.00" y="645" > </text>
+<text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1090.00" y="24" >Search</text>
+<text id="ignorecase" x="1174.00" y="24" >ic</text>
+<text id="matched" x="1090.00" y="645" > </text>
+<g id="frames">
+<g >
+<title>__libc_start_main (343,622,194 samples, 2.36%)</title><rect x="59.3" y="565" width="27.8" height="15.0" fill="rgb(210,84,21)" rx="2" ry="2" />
+<text  x="62.27" y="575.5" >_..</text>
+</g>
+<g >
+<title>tivxObjDescSend (569,954,607 samples, 3.92%)</title><rect x="670.1" y="485" width="46.2" height="15.0" fill="rgb(229,11,12)" rx="2" ry="2" />
+<text  x="673.11" y="495.5" >tivx..</text>
+</g>
+<g >
+<title>__dynamic_cast (6,101,550 samples, 0.04%)</title><rect x="41.2" y="213" width="0.5" height="15.0" fill="rgb(227,142,52)" rx="2" ry="2" />
+<text  x="44.23" y="223.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (245,985,912 samples, 1.69%)</title><rect x="1006.4" y="325" width="20.0" height="15.0" fill="rgb(211,3,6)" rx="2" ry="2" />
+<text  x="1009.40" y="335.5" ></text>
+</g>
+<g >
+<title>__slab_free.isra.0 (14,166,663 samples, 0.10%)</title><rect x="940.5" y="309" width="1.2" height="15.0" fill="rgb(226,97,14)" rx="2" ry="2" />
+<text  x="943.53" y="319.5" ></text>
+</g>
+<g >
+<title>futex_wait_queue_me (132,152,546 samples, 0.91%)</title><rect x="1172.9" y="357" width="10.7" height="15.0" fill="rgb(205,58,40)" rx="2" ry="2" />
+<text  x="1175.92" y="367.5" ></text>
+</g>
+<g >
+<title>irq_exit (30,233,330 samples, 0.21%)</title><rect x="527.9" y="293" width="2.4" height="15.0" fill="rgb(225,45,28)" rx="2" ry="2" />
+<text  x="530.87" y="303.5" ></text>
+</g>
+<g >
+<title>appIpcIsCpuEnabled (44,250,789 samples, 0.30%)</title><rect x="770.7" y="549" width="3.6" height="15.0" fill="rgb(215,183,0)" rx="2" ry="2" />
+<text  x="773.74" y="559.5" ></text>
+</g>
+<g >
+<title>rcu_report_qs_rsp (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="165" width="1.3" height="15.0" fill="rgb(247,135,15)" rx="2" ry="2" />
+<text  x="1185.26" y="175.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="245" width="1.6" height="15.0" fill="rgb(240,107,24)" rx="2" ry="2" />
+<text  x="1146.79" y="255.5" ></text>
+</g>
+<g >
+<title>schedule (38,268,554 samples, 0.26%)</title><rect x="761.6" y="325" width="3.1" height="15.0" fill="rgb(232,163,19)" rx="2" ry="2" />
+<text  x="764.59" y="335.5" ></text>
+</g>
+<g >
+<title>internal_get_user_pages_fast (120,441,072 samples, 0.83%)</title><rect x="466.6" y="149" width="9.8" height="15.0" fill="rgb(224,10,47)" rx="2" ry="2" />
+<text  x="469.59" y="159.5" ></text>
+</g>
+<g >
+<title>get_a_tx_buf (30,160,631 samples, 0.21%)</title><rect x="691.7" y="213" width="2.5" height="15.0" fill="rgb(227,220,1)" rx="2" ry="2" />
+<text  x="694.75" y="223.5" ></text>
+</g>
+<g >
+<title>futex_wake (389,326,006 samples, 2.68%)</title><rect x="464.3" y="197" width="31.6" height="15.0" fill="rgb(214,202,16)" rx="2" ry="2" />
+<text  x="467.28" y="207.5" >fu..</text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::SharedChunk@plt (28,377,394 samples, 0.20%)</title><rect x="546.8" y="437" width="2.3" height="15.0" fill="rgb(251,181,33)" rx="2" ry="2" />
+<text  x="549.81" y="447.5" ></text>
+</g>
+<g >
+<title>iox::popo::UsedChunkList&lt;8u&gt;::insert@plt (53,065,403 samples, 0.36%)</title><rect x="606.6" y="437" width="4.3" height="15.0" fill="rgb(207,161,45)" rx="2" ry="2" />
+<text  x="609.62" y="447.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ShmSafeUnmanagedChunk::getChunkHeader@plt (17,718,700 samples, 0.12%)</title><rect x="549.1" y="437" width="1.5" height="15.0" fill="rgb(242,4,19)" rx="2" ry="2" />
+<text  x="552.11" y="447.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::ResizeableLockFreeQueue&lt;iox::mepoo::ShmSafeUnmanagedChunk, 256ul&gt;::pushImpl&lt;iox::mepoo::ShmSafeUnmanagedChunk const&gt; (119,898,274 samples, 0.82%)</title><rect x="434.3" y="341" width="9.7" height="15.0" fill="rgb(213,126,46)" rx="2" ry="2" />
+<text  x="437.32" y="351.5" ></text>
+</g>
+<g >
+<title>iox::popo::ConditionNotifier::notify (618,344,785 samples, 4.25%)</title><rect x="456.4" y="373" width="50.1" height="15.0" fill="rgb(240,194,38)" rx="2" ry="2" />
+<text  x="459.38" y="383.5" >iox::..</text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (607,558,544 samples, 4.18%)</title><rect x="10.0" y="533" width="49.3" height="15.0" fill="rgb(242,110,8)" rx="2" ry="2" />
+<text  x="13.00" y="543.5" >std:..</text>
+</g>
+<g >
+<title>__softirqentry_text_start (11,473,307 samples, 0.08%)</title><rect x="996.6" y="421" width="0.9" height="15.0" fill="rgb(243,140,8)" rx="2" ry="2" />
+<text  x="999.55" y="431.5" ></text>
+</g>
+<g >
+<title>rproc_virtio_notify (94,223,526 samples, 0.65%)</title><rect x="697.7" y="197" width="7.6" height="15.0" fill="rgb(242,22,5)" rx="2" ry="2" />
+<text  x="700.67" y="207.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (30,233,330 samples, 0.21%)</title><rect x="527.9" y="181" width="2.4" height="15.0" fill="rgb(237,213,1)" rx="2" ry="2" />
+<text  x="530.87" y="191.5" ></text>
+</g>
+<g >
+<title>hrtimer_sleeper_start_expires (16,933,296 samples, 0.12%)</title><rect x="49.1" y="213" width="1.4" height="15.0" fill="rgb(205,75,19)" rx="2" ry="2" />
+<text  x="52.12" y="223.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::SemaphoreError&gt;::expected@plt (20,489,790 samples, 0.14%)</title><rect x="458.0" y="357" width="1.6" height="15.0" fill="rgb(243,217,22)" rx="2" ry="2" />
+<text  x="460.97" y="367.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (48,541,480 samples, 0.33%)</title><rect x="49.1" y="309" width="4.0" height="15.0" fill="rgb(210,173,35)" rx="2" ry="2" />
+<text  x="52.12" y="319.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="421" width="24.3" height="15.0" fill="rgb(206,180,36)" rx="2" ry="2" />
+<text  x="1124.15" y="431.5" >d..</text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;int&gt;::evaluate (25,930,855 samples, 0.18%)</title><rect x="500.9" y="341" width="2.1" height="15.0" fill="rgb(211,146,21)" rx="2" ry="2" />
+<text  x="503.88" y="351.5" ></text>
+</g>
+<g >
+<title>get_user_pages_fast (120,441,072 samples, 0.83%)</title><rect x="466.6" y="165" width="9.8" height="15.0" fill="rgb(246,222,13)" rx="2" ry="2" />
+<text  x="469.59" y="175.5" ></text>
+</g>
+<g >
+<title>el1_irq (9,222,650 samples, 0.06%)</title><rect x="710.7" y="197" width="0.7" height="15.0" fill="rgb(210,90,28)" rx="2" ry="2" />
+<text  x="713.66" y="207.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (355,982,052 samples, 2.45%)</title><rect x="997.5" y="453" width="28.9" height="15.0" fill="rgb(208,0,9)" rx="2" ry="2" />
+<text  x="1000.48" y="463.5" >el..</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::~variant (17,033,139 samples, 0.12%)</title><rect x="557.1" y="405" width="1.4" height="15.0" fill="rgb(233,175,4)" rx="2" ry="2" />
+<text  x="560.11" y="415.5" ></text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getRepository (41,989,412 samples, 0.29%)</title><rect x="576.7" y="325" width="3.4" height="15.0" fill="rgb(224,160,24)" rx="2" ry="2" />
+<text  x="579.66" y="335.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (41,629,402 samples, 0.29%)</title><rect x="1070.7" y="437" width="3.4" height="15.0" fill="rgb(252,78,26)" rx="2" ry="2" />
+<text  x="1073.68" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::get_at_index&lt;0ul&gt;@plt (21,376,746 samples, 0.15%)</title><rect x="555.4" y="405" width="1.7" height="15.0" fill="rgb(244,117,30)" rx="2" ry="2" />
+<text  x="558.38" y="415.5" ></text>
+</g>
+<g >
+<title>schedule_hrtimeout_range_clock (282,000,675 samples, 1.94%)</title><rect x="879.2" y="373" width="22.8" height="15.0" fill="rgb(206,114,35)" rx="2" ry="2" />
+<text  x="882.16" y="383.5" >s..</text>
+</g>
+<g >
+<title>__arch_copy_to_user (110,523,991 samples, 0.76%)</title><rect x="790.6" y="421" width="8.9" height="15.0" fill="rgb(222,228,24)" rx="2" ry="2" />
+<text  x="793.56" y="431.5" ></text>
+</g>
+<g >
+<title>el0_svc (159,671,538 samples, 1.10%)</title><rect x="751.7" y="437" width="13.0" height="15.0" fill="rgb(214,223,8)" rx="2" ry="2" />
+<text  x="754.75" y="447.5" ></text>
+</g>
+<g >
+<title>vxQueryReference (41,204,979 samples, 0.28%)</title><rect x="648.3" y="501" width="3.3" height="15.0" fill="rgb(238,26,52)" rx="2" ry="2" />
+<text  x="651.30" y="511.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkDistributor&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt;::pushToQueue (1,080,186,350 samples, 7.42%)</title><rect x="431.4" y="405" width="87.6" height="15.0" fill="rgb(231,63,0)" rx="2" ry="2" />
+<text  x="434.39" y="415.5" >iox::popo:..</text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::getChunkHeader@plt (18,942,001 samples, 0.13%)</title><rect x="418.0" y="421" width="1.5" height="15.0" fill="rgb(225,223,46)" rx="2" ry="2" />
+<text  x="420.98" y="431.5" ></text>
+</g>
+<g >
+<title>rcu_report_qs_rnp (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="181" width="1.3" height="15.0" fill="rgb(227,213,30)" rx="2" ry="2" />
+<text  x="1185.26" y="191.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::CyclicIndex&lt;256ul, unsigned long&gt;::isOneCycleBehind (18,087,305 samples, 0.12%)</title><rect x="441.0" y="309" width="1.5" height="15.0" fill="rgb(244,161,30)" rx="2" ry="2" />
+<text  x="444.00" y="319.5" ></text>
+</g>
+<g >
+<title>run_rebalance_domains (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="229" width="1.6" height="15.0" fill="rgb(232,115,24)" rx="2" ry="2" />
+<text  x="1146.79" y="239.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (114,825,926 samples, 0.79%)</title><rect x="755.4" y="389" width="9.3" height="15.0" fill="rgb(233,65,15)" rx="2" ry="2" />
+<text  x="758.38" y="399.5" ></text>
+</g>
+<g >
+<title>tivxEventPost (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="501" width="24.3" height="15.0" fill="rgb(231,86,54)" rx="2" ry="2" />
+<text  x="1124.15" y="511.5" >t..</text>
+</g>
+<g >
+<title>std::lock_guard&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; const&gt;::~lock_guard (48,560,428 samples, 0.33%)</title><rect x="512.9" y="373" width="3.9" height="15.0" fill="rgb(212,138,43)" rx="2" ry="2" />
+<text  x="515.88" y="383.5" ></text>
+</g>
+<g >
+<title>ownGraphClearState (64,241,751 samples, 0.44%)</title><rect x="660.1" y="485" width="5.2" height="15.0" fill="rgb(236,178,26)" rx="2" ry="2" />
+<text  x="663.08" y="495.5" ></text>
+</g>
+<g >
+<title>__pollwait (19,943,619 samples, 0.14%)</title><rect x="863.2" y="373" width="1.6" height="15.0" fill="rgb(243,122,37)" rx="2" ry="2" />
+<text  x="866.22" y="383.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::expected (48,275,697 samples, 0.33%)</title><rect x="562.9" y="405" width="3.9" height="15.0" fill="rgb(238,92,13)" rx="2" ry="2" />
+<text  x="565.87" y="415.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="565" width="1.6" height="15.0" fill="rgb(216,174,20)" rx="2" ry="2" />
+<text  x="1191.35" y="575.5" ></text>
+</g>
+<g >
+<title>std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::init (23,010,931 samples, 0.16%)</title><rect x="39.9" y="261" width="1.8" height="15.0" fill="rgb(242,19,32)" rx="2" ry="2" />
+<text  x="42.86" y="271.5" ></text>
+</g>
+<g >
+<title>tivxTargetQueueObjDesc (519,699,910 samples, 3.57%)</title><rect x="984.2" y="517" width="42.2" height="15.0" fill="rgb(208,85,10)" rx="2" ry="2" />
+<text  x="987.21" y="527.5" >tiv..</text>
+</g>
+<g >
+<title>iox_sem_timedwait (48,614,877 samples, 0.33%)</title><rect x="49.1" y="405" width="4.0" height="15.0" fill="rgb(249,106,26)" rx="2" ry="2" />
+<text  x="52.12" y="415.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;int, sem_t*&gt;::operator (16,190,865 samples, 0.11%)</title><rect x="461.5" y="357" width="1.3" height="15.0" fill="rgb(235,212,38)" rx="2" ry="2" />
+<text  x="464.53" y="367.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (607,558,544 samples, 4.18%)</title><rect x="10.0" y="549" width="49.3" height="15.0" fill="rgb(248,193,12)" rx="2" ry="2" />
+<text  x="13.00" y="559.5" >[lib..</text>
+</g>
+<g >
+<title>el1_irq (19,943,748 samples, 0.14%)</title><rect x="900.4" y="309" width="1.6" height="15.0" fill="rgb(237,7,53)" rx="2" ry="2" />
+<text  x="903.42" y="319.5" ></text>
+</g>
+<g >
+<title>ownNodeExecuteUserCallback (64,962,149 samples, 0.45%)</title><rect x="1109.2" y="517" width="5.2" height="15.0" fill="rgb(211,183,42)" rx="2" ry="2" />
+<text  x="1112.18" y="527.5" ></text>
+</g>
+<g >
+<title>iox::popo::ThreadSafePolicy::lock (18,707,776 samples, 0.13%)</title><rect x="429.9" y="373" width="1.5" height="15.0" fill="rgb(233,118,32)" rx="2" ry="2" />
+<text  x="432.87" y="383.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (355,982,052 samples, 2.45%)</title><rect x="997.5" y="405" width="28.9" height="15.0" fill="rgb(212,124,46)" rx="2" ry="2" />
+<text  x="1000.48" y="415.5" >el..</text>
+</g>
+<g >
+<title>el0_sync_handler (107,221,179 samples, 0.74%)</title><rect x="78.4" y="485" width="8.7" height="15.0" fill="rgb(219,140,10)" rx="2" ry="2" />
+<text  x="81.45" y="495.5" ></text>
+</g>
+<g >
+<title>tivxDataRefQueueSendRefConsumedEvent (381,186,277 samples, 2.62%)</title><rect x="1114.4" y="517" width="31.0" height="15.0" fill="rgb(208,65,26)" rx="2" ry="2" />
+<text  x="1117.45" y="527.5" >ti..</text>
+</g>
+<g >
+<title>do_el0_svc (465,365,164 samples, 3.20%)</title><rect x="676.4" y="373" width="37.7" height="15.0" fill="rgb(215,146,4)" rx="2" ry="2" />
+<text  x="679.35" y="383.5" >do_..</text>
+</g>
+<g >
+<title>futex_wait_queue_me (16,933,358 samples, 0.12%)</title><rect x="49.1" y="229" width="1.4" height="15.0" fill="rgb(219,87,42)" rx="2" ry="2" />
+<text  x="52.12" y="239.5" ></text>
+</g>
+<g >
+<title>kfree_skb (468,881,091 samples, 3.22%)</title><rect x="938.3" y="357" width="38.1" height="15.0" fill="rgb(239,66,9)" rx="2" ry="2" />
+<text  x="941.33" y="367.5" >kfr..</text>
+</g>
+<g >
+<title>gic_handle_irq (11,473,307 samples, 0.08%)</title><rect x="996.6" y="469" width="0.9" height="15.0" fill="rgb(234,5,53)" rx="2" ry="2" />
+<text  x="999.55" y="479.5" ></text>
+</g>
+<g >
+<title>ownIsValidSpecificReference (38,411,345 samples, 0.26%)</title><rect x="112.7" y="485" width="3.1" height="15.0" fill="rgb(237,67,27)" rx="2" ry="2" />
+<text  x="115.67" y="495.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="469" width="22.0" height="15.0" fill="rgb(216,190,22)" rx="2" ry="2" />
+<text  x="1168.34" y="479.5" >e..</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="421" width="22.0" height="15.0" fill="rgb(245,127,27)" rx="2" ry="2" />
+<text  x="1168.34" y="431.5" >e..</text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;unsigned long&gt;::operator* (61,895,952 samples, 0.43%)</title><rect x="449.7" y="373" width="5.0" height="15.0" fill="rgb(242,90,28)" rx="2" ry="2" />
+<text  x="452.67" y="383.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (19,943,748 samples, 0.14%)</title><rect x="900.4" y="293" width="1.6" height="15.0" fill="rgb(208,28,16)" rx="2" ry="2" />
+<text  x="903.42" y="303.5" ></text>
+</g>
+<g >
+<title>do_futex (267,958,575 samples, 1.84%)</title><rect x="1123.6" y="373" width="21.8" height="15.0" fill="rgb(207,97,4)" rx="2" ry="2" />
+<text  x="1126.63" y="383.5" >d..</text>
+</g>
+<g >
+<title>std::locale::_S_initialize (20,447,766 samples, 0.14%)</title><rect x="41.7" y="261" width="1.7" height="15.0" fill="rgb(251,127,13)" rx="2" ry="2" />
+<text  x="44.73" y="271.5" ></text>
+</g>
+<g >
+<title>call_trace_sched_update_nr_running (15,166,383 samples, 0.10%)</title><rect x="1005.2" y="341" width="1.2" height="15.0" fill="rgb(230,211,50)" rx="2" ry="2" />
+<text  x="1008.17" y="351.5" ></text>
+</g>
+<g >
+<title>std::lock_guard&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; const&gt;::lock_guard (18,707,776 samples, 0.13%)</title><rect x="429.9" y="389" width="1.5" height="15.0" fill="rgb(208,182,37)" rx="2" ry="2" />
+<text  x="432.87" y="399.5" ></text>
+</g>
+<g >
+<title>kfree_skbmem (41,307,590 samples, 0.28%)</title><rect x="938.3" y="341" width="3.4" height="15.0" fill="rgb(251,217,18)" rx="2" ry="2" />
+<text  x="941.33" y="351.5" ></text>
+</g>
+<g >
+<title>_copy_to_iter (22,583,523 samples, 0.16%)</title><rect x="928.6" y="373" width="1.8" height="15.0" fill="rgb(206,139,30)" rx="2" ry="2" />
+<text  x="931.56" y="383.5" ></text>
+</g>
+<g >
+<title>_IO_setb (60,687,797 samples, 0.42%)</title><rect x="68.2" y="469" width="4.9" height="15.0" fill="rgb(227,174,29)" rx="2" ry="2" />
+<text  x="71.20" y="479.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ChunkSettings::ChunkSettings@plt (25,710,013 samples, 0.18%)</title><rect x="560.8" y="421" width="2.1" height="15.0" fill="rgb(244,158,28)" rx="2" ry="2" />
+<text  x="563.78" y="431.5" ></text>
+</g>
+<g >
+<title>std::lock_guard&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; const&gt;::lock_guard (204,902,200 samples, 1.41%)</title><rect x="520.7" y="405" width="16.7" height="15.0" fill="rgb(214,65,13)" rx="2" ry="2" />
+<text  x="523.74" y="415.5" ></text>
+</g>
+<g >
+<title>iox::popo::UsedChunkList&lt;8u&gt;::insert (45,527,966 samples, 0.31%)</title><rect x="591.8" y="421" width="3.7" height="15.0" fill="rgb(252,102,54)" rx="2" ry="2" />
+<text  x="594.79" y="431.5" ></text>
+</g>
+<g >
+<title>do_futex (29,736,175 samples, 0.20%)</title><rect x="1071.6" y="405" width="2.5" height="15.0" fill="rgb(249,132,42)" rx="2" ry="2" />
+<text  x="1074.64" y="415.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_read (776,475,212 samples, 5.34%)</title><rect x="921.2" y="437" width="63.0" height="15.0" fill="rgb(232,138,34)" rx="2" ry="2" />
+<text  x="924.23" y="447.5" >__arm6..</text>
+</g>
+<g >
+<title>iox::units::Duration::timespec (17,718,944 samples, 0.12%)</title><rect x="56.0" y="437" width="1.5" height="15.0" fill="rgb(243,97,33)" rx="2" ry="2" />
+<text  x="59.04" y="447.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="453" width="1.6" height="15.0" fill="rgb(244,149,34)" rx="2" ry="2" />
+<text  x="1191.35" y="463.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (12,389,383 samples, 0.09%)</title><rect x="1076.3" y="501" width="1.0" height="15.0" fill="rgb(208,162,43)" rx="2" ry="2" />
+<text  x="1079.33" y="511.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::expected (46,929,687 samples, 0.32%)</title><rect x="531.6" y="341" width="3.8" height="15.0" fill="rgb(219,151,25)" rx="2" ry="2" />
+<text  x="534.56" y="351.5" ></text>
+</g>
+<g >
+<title>malloc (74,124,523 samples, 0.51%)</title><rect x="610.9" y="453" width="6.0" height="15.0" fill="rgb(208,137,1)" rx="2" ry="2" />
+<text  x="613.92" y="463.5" ></text>
+</g>
+<g >
+<title>__schedule (116,242,065 samples, 0.80%)</title><rect x="1174.2" y="325" width="9.4" height="15.0" fill="rgb(237,157,8)" rx="2" ry="2" />
+<text  x="1177.21" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::VariantQueue&lt;iox::mepoo::ShmSafeUnmanagedChunk, 256ul&gt;::push (187,328,620 samples, 1.29%)</title><rect x="433.1" y="373" width="15.2" height="15.0" fill="rgb(253,132,47)" rx="2" ry="2" />
+<text  x="436.07" y="383.5" ></text>
+</g>
+<g >
+<title>mempcpy (16,785,675 samples, 0.12%)</title><rect x="642.6" y="421" width="1.4" height="15.0" fill="rgb(221,201,25)" rx="2" ry="2" />
+<text  x="645.63" y="431.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (107,221,179 samples, 0.74%)</title><rect x="78.4" y="437" width="8.7" height="15.0" fill="rgb(205,44,31)" rx="2" ry="2" />
+<text  x="81.45" y="447.5" ></text>
+</g>
+<g >
+<title>vfs_write (451,569,474 samples, 3.10%)</title><rect x="677.5" y="309" width="36.6" height="15.0" fill="rgb(254,125,15)" rx="2" ry="2" />
+<text  x="680.47" y="319.5" >vfs..</text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;int&gt;::evaluate (46,929,687 samples, 0.32%)</title><rect x="531.6" y="357" width="3.8" height="15.0" fill="rgb(215,28,10)" rx="2" ry="2" />
+<text  x="534.56" y="367.5" ></text>
+</g>
+<g >
+<title>tivxObjDescIpcHandler (22,490,570 samples, 0.15%)</title><rect x="1037.2" y="549" width="1.9" height="15.0" fill="rgb(213,200,22)" rx="2" ry="2" />
+<text  x="1040.23" y="559.5" ></text>
+</g>
+<g >
+<title>skb_release_all (427,573,501 samples, 2.94%)</title><rect x="941.7" y="341" width="34.7" height="15.0" fill="rgb(249,46,41)" rx="2" ry="2" />
+<text  x="944.68" y="351.5" >sk..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (171,003,584 samples, 1.18%)</title><rect x="630.1" y="453" width="13.9" height="15.0" fill="rgb(226,109,22)" rx="2" ry="2" />
+<text  x="633.12" y="463.5" ></text>
+</g>
+<g >
+<title>fpsimd_load_state (12,977,106 samples, 0.09%)</title><rect x="1187.3" y="437" width="1.0" height="15.0" fill="rgb(224,100,46)" rx="2" ry="2" />
+<text  x="1190.30" y="447.5" ></text>
+</g>
+<g >
+<title>k3_r5_rproc_kick (57,321,228 samples, 0.39%)</title><rect x="700.7" y="181" width="4.6" height="15.0" fill="rgb(222,38,48)" rx="2" ry="2" />
+<text  x="703.66" y="191.5" ></text>
+</g>
+<g >
+<title>vxFormatImagePatchAddress2d (234,346,217 samples, 1.61%)</title><rect x="246.5" y="485" width="19.0" height="15.0" fill="rgb(207,121,38)" rx="2" ry="2" />
+<text  x="249.53" y="495.5" ></text>
+</g>
+<g >
+<title>tivxIpcHandler (20,903,989 samples, 0.14%)</title><rect x="1035.5" y="549" width="1.7" height="15.0" fill="rgb(221,190,10)" rx="2" ry="2" />
+<text  x="1038.53" y="559.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcMessageTypeToString[abi:cxx11] (80,545,920 samples, 0.55%)</title><rect x="39.9" y="309" width="6.5" height="15.0" fill="rgb(227,119,34)" rx="2" ry="2" />
+<text  x="42.86" y="319.5" ></text>
+</g>
+<g >
+<title>hrtimer_active (13,082,133 samples, 0.09%)</title><rect x="78.4" y="373" width="1.1" height="15.0" fill="rgb(232,7,34)" rx="2" ry="2" />
+<text  x="81.45" y="383.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkDistributor&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt;::deliverToAllStoredQueues (1,435,332,371 samples, 9.87%)</title><rect x="420.9" y="421" width="116.5" height="15.0" fill="rgb(221,136,54)" rx="2" ry="2" />
+<text  x="423.95" y="431.5" >iox::popo::Chu..</text>
+</g>
+<g >
+<title>futex_wait (33,460,250 samples, 0.23%)</title><rect x="49.1" y="245" width="2.7" height="15.0" fill="rgb(221,69,4)" rx="2" ry="2" />
+<text  x="52.12" y="255.5" ></text>
+</g>
+<g >
+<title>iox::runtime::PoshRuntimeImpl::sendKeepAliveAndHandleShutdownPreparation (417,909,531 samples, 2.87%)</title><rect x="12.5" y="341" width="33.9" height="15.0" fill="rgb(240,134,22)" rx="2" ry="2" />
+<text  x="15.50" y="351.5" >io..</text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::rp::RelativePointer&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;, 256ul&gt;::~vector (13,387,770 samples, 0.09%)</title><rect x="413.3" y="421" width="1.1" height="15.0" fill="rgb(209,186,1)" rx="2" ry="2" />
+<text  x="416.31" y="431.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkSender&lt;iox::popo::ChunkSenderData&lt;8u, iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt; &gt;::send (1,610,574,985 samples, 11.07%)</title><rect x="412.2" y="437" width="130.6" height="15.0" fill="rgb(246,67,52)" rx="2" ry="2" />
+<text  x="415.19" y="447.5" >iox::popo::Chunk..</text>
+</g>
+<g >
+<title>iox::mepoo::ChunkSettings::userHeaderSize@plt (19,365,766 samples, 0.13%)</title><rect x="568.2" y="421" width="1.5" height="15.0" fill="rgb(216,129,26)" rx="2" ry="2" />
+<text  x="571.18" y="431.5" ></text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getId@plt (23,994,504 samples, 0.16%)</title><rect x="591.8" y="405" width="1.9" height="15.0" fill="rgb(231,156,32)" rx="2" ry="2" />
+<text  x="594.79" y="415.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~variant (22,324,549 samples, 0.15%)</title><rect x="509.8" y="309" width="1.8" height="15.0" fill="rgb(238,226,46)" rx="2" ry="2" />
+<text  x="512.84" y="319.5" ></text>
+</g>
+<g >
+<title>std::basic_ios&lt;char, std::char_traits&lt;char&gt; &gt;::_M_cache_locale (23,010,931 samples, 0.16%)</title><rect x="39.9" y="245" width="1.8" height="15.0" fill="rgb(235,10,25)" rx="2" ry="2" />
+<text  x="42.86" y="255.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~variant (27,980,898 samples, 0.19%)</title><rect x="525.6" y="341" width="2.3" height="15.0" fill="rgb(205,209,13)" rx="2" ry="2" />
+<text  x="528.60" y="351.5" ></text>
+</g>
+<g >
+<title>preempt_schedule (16,615,910 samples, 0.11%)</title><rect x="494.5" y="149" width="1.4" height="15.0" fill="rgb(212,191,17)" rx="2" ry="2" />
+<text  x="497.50" y="159.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (5,149,154,647 samples, 35.39%)</title><rect x="770.7" y="565" width="417.6" height="15.0" fill="rgb(252,194,17)" rx="2" ry="2" />
+<text  x="773.74" y="575.5" >[libpthread-2.30.so]</text>
+</g>
+<g >
+<title>ownAllocImageBuffer (757,570,229 samples, 5.21%)</title><rect x="293.8" y="453" width="61.4" height="15.0" fill="rgb(236,202,5)" rx="2" ry="2" />
+<text  x="296.79" y="463.5" >ownAll..</text>
+</g>
+<g >
+<title>sem_wait (14,197,992 samples, 0.10%)</title><rect x="747.8" y="469" width="1.1" height="15.0" fill="rgb(224,16,31)" rx="2" ry="2" />
+<text  x="750.76" y="479.5" ></text>
+</g>
+<g >
+<title>el1_irq (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="293" width="1.3" height="15.0" fill="rgb(230,22,25)" rx="2" ry="2" />
+<text  x="1185.26" y="303.5" ></text>
+</g>
+<g >
+<title>__fsnotify_parent (24,788,294 samples, 0.17%)</title><rect x="982.2" y="357" width="2.0" height="15.0" fill="rgb(226,9,4)" rx="2" ry="2" />
+<text  x="985.20" y="367.5" ></text>
+</g>
+<g >
+<title>__slab_free.isra.0 (341,836,374 samples, 2.35%)</title><rect x="943.8" y="277" width="27.7" height="15.0" fill="rgb(225,187,35)" rx="2" ry="2" />
+<text  x="946.79" y="287.5" >_..</text>
+</g>
+<g >
+<title>pthread_cond_signal (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="485" width="24.3" height="15.0" fill="rgb(241,161,15)" rx="2" ry="2" />
+<text  x="1124.15" y="495.5" >p..</text>
+</g>
+<g >
+<title>iox::popo::PublisherPortUser::tryAllocateChunk (811,668,018 samples, 5.58%)</title><rect x="545.1" y="453" width="65.8" height="15.0" fill="rgb(244,156,47)" rx="2" ry="2" />
+<text  x="548.09" y="463.5" >iox::po..</text>
+</g>
+<g >
+<title>__arm64_compat_sys_ppoll_time64 (34,380,537 samples, 0.24%)</title><rect x="860.4" y="373" width="2.8" height="15.0" fill="rgb(253,177,45)" rx="2" ry="2" />
+<text  x="863.43" y="383.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (8,428,799,975 samples, 57.93%)</title><rect x="87.1" y="565" width="683.6" height="15.0" fill="rgb(234,67,20)" rx="2" ry="2" />
+<text  x="90.14" y="575.5" >[libpthread-2.30.so]</text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getRepository@plt (21,942,286 samples, 0.15%)</title><rect x="583.4" y="341" width="1.8" height="15.0" fill="rgb(228,130,34)" rx="2" ry="2" />
+<text  x="586.37" y="351.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::IndexQueue&lt;256ul, unsigned long&gt;::pop (82,401,184 samples, 0.57%)</title><rect x="434.3" y="325" width="6.7" height="15.0" fill="rgb(250,152,38)" rx="2" ry="2" />
+<text  x="437.32" y="335.5" ></text>
+</g>
+<g >
+<title>el0_irq_naked (18,350,433 samples, 0.13%)</title><rect x="111.2" y="469" width="1.5" height="15.0" fill="rgb(242,5,0)" rx="2" ry="2" />
+<text  x="114.18" y="479.5" ></text>
+</g>
+<g >
+<title>iox::rp::RelativePointer&lt;iox::mepoo::ChunkManagement&gt;::get (186,513,486 samples, 1.28%)</title><rect x="576.7" y="389" width="15.1" height="15.0" fill="rgb(254,212,24)" rx="2" ry="2" />
+<text  x="579.66" y="399.5" ></text>
+</g>
+<g >
+<title>do_select (1,204,095,494 samples, 8.28%)</title><rect x="804.4" y="405" width="97.6" height="15.0" fill="rgb(233,60,3)" rx="2" ry="2" />
+<text  x="807.38" y="415.5" >do_select</text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (21,766,177 samples, 0.15%)</title><rect x="428.1" y="325" width="1.8" height="15.0" fill="rgb(210,131,10)" rx="2" ry="2" />
+<text  x="431.11" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::NewType&lt;unsigned long, iox::cxx::newtype::ProtectedConstructByValueCopy, iox::cxx::newtype::Comparable, iox::cxx::newtype::Sortable, iox::cxx::newtype::Convertable, iox::cxx::newtype::CopyConstructable, iox::cxx::newtype::MoveConstructable, iox::cxx::newtype::CopyAssignable, iox::cxx::newtype::MoveAssignable&gt;::NewType (25,918,243 samples, 0.18%)</title><rect x="551.9" y="421" width="2.1" height="15.0" fill="rgb(248,194,34)" rx="2" ry="2" />
+<text  x="554.86" y="431.5" ></text>
+</g>
+<g >
+<title>ownUpdateGraphPerf (19,245,217 samples, 0.13%)</title><rect x="1079.3" y="501" width="1.5" height="15.0" fill="rgb(205,185,0)" rx="2" ry="2" />
+<text  x="1082.28" y="511.5" ></text>
+</g>
+<g >
+<title>iox::rp::RelativePointer&lt;iox::popo::ConditionVariableData&gt;::get (23,560,318 samples, 0.16%)</title><rect x="507.9" y="357" width="1.9" height="15.0" fill="rgb(205,138,43)" rx="2" ry="2" />
+<text  x="510.92" y="367.5" ></text>
+</g>
+<g >
+<title>iox::rp::RelativePointer&lt;iox::popo::ConditionVariableData&gt;::operator iox::popo::ConditionVariableData* (23,560,318 samples, 0.16%)</title><rect x="507.9" y="373" width="1.9" height="15.0" fill="rgb(223,195,49)" rx="2" ry="2" />
+<text  x="510.92" y="383.5" ></text>
+</g>
+<g >
+<title>iox::popo::UsedChunkList&lt;8u&gt;::remove (20,301,074 samples, 0.14%)</title><rect x="537.4" y="421" width="1.6" height="15.0" fill="rgb(221,147,19)" rx="2" ry="2" />
+<text  x="540.36" y="431.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcRuntimeInterface::sendKeepalive (417,909,531 samples, 2.87%)</title><rect x="12.5" y="325" width="33.9" height="15.0" fill="rgb(243,12,31)" rx="2" ry="2" />
+<text  x="15.50" y="335.5" >io..</text>
+</g>
+<g >
+<title>ownCheckGraphCompleted (16,488,217 samples, 0.11%)</title><rect x="1039.1" y="533" width="1.3" height="15.0" fill="rgb(236,114,18)" rx="2" ry="2" />
+<text  x="1042.05" y="543.5" ></text>
+</g>
+<g >
+<title>iox::cxx::success&lt;iox::mepoo::ChunkSettings&gt;::success@plt (15,106,023 samples, 0.10%)</title><rect x="558.5" y="421" width="1.2" height="15.0" fill="rgb(240,154,45)" rx="2" ry="2" />
+<text  x="561.50" y="431.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (12,977,106 samples, 0.09%)</title><rect x="1187.3" y="469" width="1.0" height="15.0" fill="rgb(250,12,22)" rx="2" ry="2" />
+<text  x="1190.30" y="479.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::SemaphoreError&gt;::~expected@plt (17,384,686 samples, 0.12%)</title><rect x="448.3" y="373" width="1.4" height="15.0" fill="rgb(250,81,31)" rx="2" ry="2" />
+<text  x="451.26" y="383.5" ></text>
+</g>
+<g >
+<title>iox::posix::mutex::unlock (48,560,428 samples, 0.33%)</title><rect x="512.9" y="341" width="3.9" height="15.0" fill="rgb(236,52,38)" rx="2" ry="2" />
+<text  x="515.88" y="351.5" ></text>
+</g>
+<g >
+<title>work_pending (21,448,463 samples, 0.15%)</title><rect x="764.7" y="469" width="1.7" height="15.0" fill="rgb(215,10,53)" rx="2" ry="2" />
+<text  x="767.70" y="479.5" ></text>
+</g>
+<g >
+<title>poll_freewait (92,921,150 samples, 0.64%)</title><rect x="838.6" y="389" width="7.5" height="15.0" fill="rgb(213,92,40)" rx="2" ry="2" />
+<text  x="841.59" y="399.5" ></text>
+</g>
+<g >
+<title>vsnprintf (15,341,168 samples, 0.11%)</title><rect x="645.4" y="501" width="1.2" height="15.0" fill="rgb(209,184,31)" rx="2" ry="2" />
+<text  x="648.41" y="511.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::call_element_destructor@plt (48,275,697 samples, 0.33%)</title><rect x="562.9" y="373" width="3.9" height="15.0" fill="rgb(210,202,52)" rx="2" ry="2" />
+<text  x="565.87" y="383.5" ></text>
+</g>
+<g >
+<title>schedule_hrtimeout_range (282,000,675 samples, 1.94%)</title><rect x="879.2" y="389" width="22.8" height="15.0" fill="rgb(233,212,0)" rx="2" ry="2" />
+<text  x="882.16" y="399.5" >s..</text>
+</g>
+<g >
+<title>wake_up_q (245,985,912 samples, 1.69%)</title><rect x="1006.4" y="341" width="20.0" height="15.0" fill="rgb(242,17,43)" rx="2" ry="2" />
+<text  x="1009.40" y="351.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::mepoo::ChunkSettings&gt; (17,200,088 samples, 0.12%)</title><rect x="566.8" y="405" width="1.4" height="15.0" fill="rgb(229,104,11)" rx="2" ry="2" />
+<text  x="569.78" y="415.5" ></text>
+</g>
+<g >
+<title>do_futex (389,326,006 samples, 2.68%)</title><rect x="464.3" y="213" width="31.6" height="15.0" fill="rgb(216,11,28)" rx="2" ry="2" />
+<text  x="467.28" y="223.5" >do..</text>
+</g>
+<g >
+<title>fput (12,965,156 samples, 0.09%)</title><rect x="837.5" y="389" width="1.1" height="15.0" fill="rgb(218,132,30)" rx="2" ry="2" />
+<text  x="840.54" y="399.5" ></text>
+</g>
+<g >
+<title>el0_sync (159,671,538 samples, 1.10%)</title><rect x="751.7" y="469" width="13.0" height="15.0" fill="rgb(219,222,29)" rx="2" ry="2" />
+<text  x="754.75" y="479.5" ></text>
+</g>
+<g >
+<title>work_pending (17,189,043 samples, 0.12%)</title><rect x="405.1" y="453" width="1.4" height="15.0" fill="rgb(205,76,16)" rx="2" ry="2" />
+<text  x="408.13" y="463.5" ></text>
+</g>
+<g >
+<title>el0_svc (107,221,179 samples, 0.74%)</title><rect x="78.4" y="469" width="8.7" height="15.0" fill="rgb(213,121,50)" rx="2" ry="2" />
+<text  x="81.45" y="479.5" ></text>
+</g>
+<g >
+<title>iox::posix::UnixDomainSocket::timedSend (159,968,104 samples, 1.10%)</title><rect x="14.3" y="277" width="13.0" height="15.0" fill="rgb(235,142,5)" rx="2" ry="2" />
+<text  x="17.29" y="287.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcInterfaceBase::send (182,077,438 samples, 1.25%)</title><rect x="12.5" y="309" width="14.8" height="15.0" fill="rgb(241,4,54)" rx="2" ry="2" />
+<text  x="15.50" y="319.5" ></text>
+</g>
+<g >
+<title>futex_wake (267,958,575 samples, 1.84%)</title><rect x="1123.6" y="357" width="21.8" height="15.0" fill="rgb(247,195,51)" rx="2" ry="2" />
+<text  x="1126.63" y="367.5" >f..</text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getPtr@plt (47,301,085 samples, 0.33%)</title><rect x="588.0" y="373" width="3.8" height="15.0" fill="rgb(225,143,24)" rx="2" ry="2" />
+<text  x="590.95" y="383.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;unsigned long&gt;::operator* (20,681,328 samples, 0.14%)</title><rect x="431.4" y="389" width="1.7" height="15.0" fill="rgb(253,151,0)" rx="2" ry="2" />
+<text  x="434.39" y="399.5" ></text>
+</g>
+<g >
+<title>xxxKeepAlive (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="597" width="1.6" height="15.0" fill="rgb(250,137,23)" rx="2" ry="2" />
+<text  x="1191.35" y="607.5" ></text>
+</g>
+<g >
+<title>kfree_skb (37,841,081 samples, 0.26%)</title><rect x="934.2" y="373" width="3.1" height="15.0" fill="rgb(205,192,54)" rx="2" ry="2" />
+<text  x="937.22" y="383.5" ></text>
+</g>
+<g >
+<title>security_file_permission (52,027,215 samples, 0.36%)</title><rect x="980.0" y="373" width="4.2" height="15.0" fill="rgb(236,41,32)" rx="2" ry="2" />
+<text  x="982.99" y="383.5" ></text>
+</g>
+<g >
+<title>iox::rp::PointerRepository&lt;unsigned long, void*, 10000ul&gt;::getBasePtr@plt (34,534,897 samples, 0.24%)</title><rect x="585.2" y="341" width="2.8" height="15.0" fill="rgb(228,15,1)" rx="2" ry="2" />
+<text  x="588.15" y="351.5" ></text>
+</g>
+<g >
+<title>f_dupfd (41,169,919 samples, 0.28%)</title><rect x="833.4" y="373" width="3.4" height="15.0" fill="rgb(242,186,10)" rx="2" ry="2" />
+<text  x="836.41" y="383.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (24,603,898 samples, 0.17%)</title><rect x="244.5" y="405" width="2.0" height="15.0" fill="rgb(217,107,18)" rx="2" ry="2" />
+<text  x="247.54" y="415.5" ></text>
+</g>
+<g >
+<title>memcg_slab_free_hook (42,304,993 samples, 0.29%)</title><rect x="684.1" y="245" width="3.5" height="15.0" fill="rgb(232,133,53)" rx="2" ry="2" />
+<text  x="687.13" y="255.5" ></text>
+</g>
+<g >
+<title>vsnprintf (171,003,584 samples, 1.18%)</title><rect x="630.1" y="485" width="13.9" height="15.0" fill="rgb(233,130,8)" rx="2" ry="2" />
+<text  x="633.12" y="495.5" ></text>
+</g>
+<g >
+<title>iox::posix::mutex::lock (18,707,776 samples, 0.13%)</title><rect x="429.9" y="357" width="1.5" height="15.0" fill="rgb(208,184,46)" rx="2" ry="2" />
+<text  x="432.87" y="367.5" ></text>
+</g>
+<g >
+<title>vxReleaseImage (38,436,346 samples, 0.26%)</title><rect x="393.5" y="485" width="3.1" height="15.0" fill="rgb(238,142,11)" rx="2" ry="2" />
+<text  x="396.49" y="495.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallVerificator&lt;int&gt;::returnValueMatchesErrno@plt (17,347,150 samples, 0.12%)</title><rect x="522.7" y="373" width="1.4" height="15.0" fill="rgb(212,204,16)" rx="2" ry="2" />
+<text  x="525.70" y="383.5" ></text>
+</g>
+<g >
+<title>sendto (159,968,104 samples, 1.10%)</title><rect x="14.3" y="229" width="13.0" height="15.0" fill="rgb(208,175,28)" rx="2" ry="2" />
+<text  x="17.29" y="239.5" ></text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getBasePtr (82,735,218 samples, 0.57%)</title><rect x="576.7" y="341" width="6.7" height="15.0" fill="rgb(227,116,9)" rx="2" ry="2" />
+<text  x="579.66" y="351.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (155,797,342 samples, 1.07%)</title><rect x="60.6" y="501" width="12.6" height="15.0" fill="rgb(205,67,20)" rx="2" ry="2" />
+<text  x="63.56" y="511.5" ></text>
+</g>
+<g >
+<title>irq_exit (24,603,898 samples, 0.17%)</title><rect x="244.5" y="421" width="2.0" height="15.0" fill="rgb(233,100,20)" rx="2" ry="2" />
+<text  x="247.54" y="431.5" ></text>
+</g>
+<g >
+<title>tivxTaskMain (8,428,799,975 samples, 57.93%)</title><rect x="87.1" y="549" width="683.6" height="15.0" fill="rgb(212,43,47)" rx="2" ry="2" />
+<text  x="90.14" y="559.5" >tivxTaskMain</text>
+</g>
+<g >
+<title>work_pending (93,229,356 samples, 0.64%)</title><rect x="905.2" y="517" width="7.6" height="15.0" fill="rgb(224,15,38)" rx="2" ry="2" />
+<text  x="908.24" y="527.5" ></text>
+</g>
+<g >
+<title>f_dupfd (13,795,690 samples, 0.09%)</title><rect x="676.4" y="293" width="1.1" height="15.0" fill="rgb(213,187,26)" rx="2" ry="2" />
+<text  x="679.35" y="303.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (14,377,650 samples, 0.10%)</title><rect x="763.5" y="293" width="1.2" height="15.0" fill="rgb(239,6,39)" rx="2" ry="2" />
+<text  x="766.53" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (448,723,972 samples, 3.08%)</title><rect x="10.0" y="405" width="36.4" height="15.0" fill="rgb(238,204,29)" rx="2" ry="2" />
+<text  x="13.00" y="415.5" >iox..</text>
+</g>
+<g >
+<title>__handle_domain_irq (16,719,574 samples, 0.11%)</title><rect x="970.2" y="213" width="1.3" height="15.0" fill="rgb(226,192,12)" rx="2" ry="2" />
+<text  x="973.16" y="223.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ShmSafeUnmanagedChunk::isNotLogicalNullptrAndHasNoOtherOwners (228,177,791 samples, 1.57%)</title><rect x="573.3" y="421" width="18.5" height="15.0" fill="rgb(208,209,19)" rx="2" ry="2" />
+<text  x="576.28" y="431.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~expected@plt (24,142,219 samples, 0.17%)</title><rect x="520.7" y="373" width="2.0" height="15.0" fill="rgb(244,100,45)" rx="2" ry="2" />
+<text  x="523.74" y="383.5" ></text>
+</g>
+<g >
+<title>futex_wake (37,925,736 samples, 0.26%)</title><rect x="722.7" y="373" width="3.1" height="15.0" fill="rgb(220,69,53)" rx="2" ry="2" />
+<text  x="725.71" y="383.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="581" width="1.6" height="15.0" fill="rgb(254,223,5)" rx="2" ry="2" />
+<text  x="1191.35" y="591.5" ></text>
+</g>
+<g >
+<title>iox::posix::UnixDomainSocket::send (159,968,104 samples, 1.10%)</title><rect x="14.3" y="293" width="13.0" height="15.0" fill="rgb(229,186,17)" rx="2" ry="2" />
+<text  x="17.29" y="303.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ChunkSettings::create (65,475,785 samples, 0.45%)</title><rect x="562.9" y="421" width="5.3" height="15.0" fill="rgb(212,80,17)" rx="2" ry="2" />
+<text  x="565.87" y="431.5" ></text>
+</g>
+<g >
+<title>tivxObjDescGet (32,067,745 samples, 0.22%)</title><rect x="1041.5" y="533" width="2.6" height="15.0" fill="rgb(246,219,13)" rx="2" ry="2" />
+<text  x="1044.47" y="543.5" ></text>
+</g>
+<g >
+<title>futex_wait (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="373" width="22.0" height="15.0" fill="rgb(205,143,28)" rx="2" ry="2" />
+<text  x="1168.34" y="383.5" >f..</text>
+</g>
+<g >
+<title>el0_sync (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="469" width="24.3" height="15.0" fill="rgb(209,18,7)" rx="2" ry="2" />
+<text  x="1124.15" y="479.5" >e..</text>
+</g>
+<g >
+<title>sem_post (62,787,126 samples, 0.43%)</title><rect x="733.6" y="485" width="5.1" height="15.0" fill="rgb(217,189,12)" rx="2" ry="2" />
+<text  x="736.60" y="495.5" ></text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::computeRawPtr@plt (21,207,717 samples, 0.15%)</title><rect x="574.9" y="389" width="1.8" height="15.0" fill="rgb(231,23,45)" rx="2" ry="2" />
+<text  x="577.94" y="399.5" ></text>
+</g>
+<g >
+<title>rcu_core (30,233,330 samples, 0.21%)</title><rect x="527.9" y="245" width="2.4" height="15.0" fill="rgb(205,134,19)" rx="2" ry="2" />
+<text  x="530.87" y="255.5" ></text>
+</g>
+<g >
+<title>vxQueryObjectArray (20,391,564 samples, 0.14%)</title><rect x="646.6" y="501" width="1.7" height="15.0" fill="rgb(248,36,15)" rx="2" ry="2" />
+<text  x="649.65" y="511.5" ></text>
+</g>
+<g >
+<title>sem_post (389,326,006 samples, 2.68%)</title><rect x="464.3" y="325" width="31.6" height="15.0" fill="rgb(221,21,2)" rx="2" ry="2" />
+<text  x="467.28" y="335.5" >se..</text>
+</g>
+<g >
+<title>iox::posix::mutex::lock (163,412,831 samples, 1.12%)</title><rect x="524.1" y="373" width="13.3" height="15.0" fill="rgb(232,24,42)" rx="2" ry="2" />
+<text  x="527.11" y="383.5" ></text>
+</g>
+<g >
+<title>tivxLogRtTraceTargetExeStart (13,283,869 samples, 0.09%)</title><rect x="1040.4" y="533" width="1.1" height="15.0" fill="rgb(233,151,14)" rx="2" ry="2" />
+<text  x="1043.39" y="543.5" ></text>
+</g>
+<g >
+<title>std::lock_guard&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; const&gt;::lock_guard (37,488,253 samples, 0.26%)</title><rect x="509.8" y="373" width="3.1" height="15.0" fill="rgb(245,147,45)" rx="2" ry="2" />
+<text  x="512.84" y="383.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="405" width="22.0" height="15.0" fill="rgb(244,164,16)" rx="2" ry="2" />
+<text  x="1168.34" y="415.5" >_..</text>
+</g>
+<g >
+<title>iox::popo::BasePort::getUniqueID@plt (32,950,254 samples, 0.23%)</title><rect x="408.3" y="453" width="2.6" height="15.0" fill="rgb(246,186,22)" rx="2" ry="2" />
+<text  x="411.25" y="463.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (302,844,621 samples, 2.08%)</title><rect x="1001.8" y="389" width="24.6" height="15.0" fill="rgb(207,119,19)" rx="2" ry="2" />
+<text  x="1004.79" y="399.5" >_..</text>
+</g>
+<g >
+<title>vxQueryImage (62,505,627 samples, 0.43%)</title><rect x="388.4" y="485" width="5.1" height="15.0" fill="rgb(249,174,44)" rx="2" ry="2" />
+<text  x="391.42" y="495.5" ></text>
+</g>
+<g >
+<title>iox::popo::ConditionNotifier::ConditionNotifier (26,875,276 samples, 0.18%)</title><rect x="516.8" y="389" width="2.2" height="15.0" fill="rgb(238,160,33)" rx="2" ry="2" />
+<text  x="519.81" y="399.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (76,572,903 samples, 0.53%)</title><rect x="80.9" y="341" width="6.2" height="15.0" fill="rgb(253,170,34)" rx="2" ry="2" />
+<text  x="83.93" y="351.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (1,479,286,362 samples, 10.17%)</title><rect x="785.3" y="453" width="119.9" height="15.0" fill="rgb(217,227,23)" rx="2" ry="2" />
+<text  x="788.27" y="463.5" >el0_svc_common..</text>
+</g>
+<g >
+<title>__softirqentry_text_start (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="229" width="1.3" height="15.0" fill="rgb(221,72,37)" rx="2" ry="2" />
+<text  x="1185.26" y="239.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (1,479,286,362 samples, 10.17%)</title><rect x="785.3" y="501" width="119.9" height="15.0" fill="rgb(238,74,22)" rx="2" ry="2" />
+<text  x="788.27" y="511.5" >el0_sync_handler</text>
+</g>
+<g >
+<title>gic_handle_irq (24,603,898 samples, 0.17%)</title><rect x="244.5" y="453" width="2.0" height="15.0" fill="rgb(246,120,19)" rx="2" ry="2" />
+<text  x="247.54" y="463.5" ></text>
+</g>
+<g >
+<title>pthread_cond_signal (355,982,052 samples, 2.45%)</title><rect x="997.5" y="485" width="28.9" height="15.0" fill="rgb(224,111,33)" rx="2" ry="2" />
+<text  x="1000.48" y="495.5" >pt..</text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~expected (18,707,776 samples, 0.13%)</title><rect x="429.9" y="341" width="1.5" height="15.0" fill="rgb(218,87,8)" rx="2" ry="2" />
+<text  x="432.87" y="351.5" ></text>
+</g>
+<g >
+<title>rpmsg_eptdev_poll (241,564,003 samples, 1.66%)</title><rect x="846.1" y="389" width="19.6" height="15.0" fill="rgb(254,91,20)" rx="2" ry="2" />
+<text  x="849.13" y="399.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_nanosleep (107,221,179 samples, 0.74%)</title><rect x="78.4" y="421" width="8.7" height="15.0" fill="rgb(254,210,4)" rx="2" ry="2" />
+<text  x="81.45" y="431.5" ></text>
+</g>
+<g >
+<title>skb_free_head (427,573,501 samples, 2.94%)</title><rect x="941.7" y="309" width="34.7" height="15.0" fill="rgb(227,77,52)" rx="2" ry="2" />
+<text  x="944.68" y="319.5" >sk..</text>
+</g>
+<g >
+<title>appIpcSendNotifyPort (497,008,600 samples, 3.42%)</title><rect x="673.8" y="453" width="40.3" height="15.0" fill="rgb(228,112,27)" rx="2" ry="2" />
+<text  x="676.79" y="463.5" >app..</text>
+</g>
+<g >
+<title>f_dupfd (38,303,012 samples, 0.26%)</title><rect x="923.6" y="389" width="3.1" height="15.0" fill="rgb(233,76,18)" rx="2" ry="2" />
+<text  x="926.60" y="399.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (47,221,539 samples, 0.32%)</title><rect x="930.4" y="373" width="3.8" height="15.0" fill="rgb(217,0,46)" rx="2" ry="2" />
+<text  x="933.39" y="383.5" ></text>
+</g>
+<g >
+<title>new_sync_read (627,093,216 samples, 4.31%)</title><rect x="926.7" y="389" width="50.9" height="15.0" fill="rgb(223,145,19)" rx="2" ry="2" />
+<text  x="929.71" y="399.5" >new_s..</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (465,365,164 samples, 3.20%)</title><rect x="676.4" y="357" width="37.7" height="15.0" fill="rgb(207,43,9)" rx="2" ry="2" />
+<text  x="679.35" y="367.5" >el0..</text>
+</g>
+<g >
+<title>iox::popo::ThreadSafePolicy::unlock (48,560,428 samples, 0.33%)</title><rect x="512.9" y="357" width="3.9" height="15.0" fill="rgb(250,203,21)" rx="2" ry="2" />
+<text  x="515.88" y="367.5" ></text>
+</g>
+<g >
+<title>vxQueryReference (31,046,515 samples, 0.21%)</title><rect x="768.2" y="517" width="2.5" height="15.0" fill="rgb(230,107,43)" rx="2" ry="2" />
+<text  x="771.22" y="527.5" ></text>
+</g>
+<g >
+<title>strncmp (262,814,243 samples, 1.81%)</title><rect x="358.5" y="469" width="21.3" height="15.0" fill="rgb(221,163,39)" rx="2" ry="2" />
+<text  x="361.46" y="479.5" >s..</text>
+</g>
+<g >
+<title>tivxDataRefQueueEnqueueReadyRef (27,763,200 samples, 0.19%)</title><rect x="716.3" y="501" width="2.3" height="15.0" fill="rgb(229,57,18)" rx="2" ry="2" />
+<text  x="719.34" y="511.5" ></text>
+</g>
+<g >
+<title>ownNodeCheckAndSendCompletionEvent (14,795,720 samples, 0.10%)</title><rect x="1108.0" y="517" width="1.2" height="15.0" fill="rgb(213,100,24)" rx="2" ry="2" />
+<text  x="1110.98" y="527.5" ></text>
+</g>
+<g >
+<title>do_futex (114,825,926 samples, 0.79%)</title><rect x="755.4" y="373" width="9.3" height="15.0" fill="rgb(246,144,21)" rx="2" ry="2" />
+<text  x="758.38" y="383.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (37,925,736 samples, 0.26%)</title><rect x="722.7" y="405" width="3.1" height="15.0" fill="rgb(236,79,23)" rx="2" ry="2" />
+<text  x="725.71" y="415.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (201,439,455 samples, 1.38%)</title><rect x="478.2" y="165" width="16.3" height="15.0" fill="rgb(249,17,50)" rx="2" ry="2" />
+<text  x="481.17" y="175.5" ></text>
+</g>
+<g >
+<title>el0_irq_naked (21,154,494 samples, 0.15%)</title><rect x="1163.6" y="469" width="1.7" height="15.0" fill="rgb(237,125,24)" rx="2" ry="2" />
+<text  x="1166.63" y="479.5" ></text>
+</g>
+<g >
+<title>__schedule (17,189,043 samples, 0.12%)</title><rect x="405.1" y="405" width="1.4" height="15.0" fill="rgb(207,155,16)" rx="2" ry="2" />
+<text  x="408.13" y="415.5" ></text>
+</g>
+<g >
+<title>__pthread_mutex_lock (12,209,773 samples, 0.08%)</title><rect x="1077.3" y="501" width="1.0" height="15.0" fill="rgb(233,8,44)" rx="2" ry="2" />
+<text  x="1080.33" y="511.5" ></text>
+</g>
+<g >
+<title>iov_iter_advance (43,108,288 samples, 0.30%)</title><rect x="679.1" y="245" width="3.5" height="15.0" fill="rgb(225,200,20)" rx="2" ry="2" />
+<text  x="682.12" y="255.5" ></text>
+</g>
+<g >
+<title>iox::rp::RelativePointer&lt;iox::mepoo::ChunkManagement&gt;::operator (207,721,203 samples, 1.43%)</title><rect x="574.9" y="405" width="16.9" height="15.0" fill="rgb(236,94,18)" rx="2" ry="2" />
+<text  x="577.94" y="415.5" ></text>
+</g>
+<g >
+<title>el1_irq (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="309" width="1.6" height="15.0" fill="rgb(245,109,29)" rx="2" ry="2" />
+<text  x="1146.79" y="319.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (48,541,480 samples, 0.33%)</title><rect x="49.1" y="341" width="4.0" height="15.0" fill="rgb(245,133,22)" rx="2" ry="2" />
+<text  x="52.12" y="351.5" ></text>
+</g>
+<g >
+<title>__fdget_pos (13,795,690 samples, 0.09%)</title><rect x="676.4" y="309" width="1.1" height="15.0" fill="rgb(244,183,26)" rx="2" ry="2" />
+<text  x="679.35" y="319.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::addEntry&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt; (155,286,173 samples, 1.07%)</title><rect x="27.3" y="293" width="12.6" height="15.0" fill="rgb(224,223,47)" rx="2" ry="2" />
+<text  x="30.27" y="303.5" ></text>
+</g>
+<g >
+<title>new_sync_write (430,757,726 samples, 2.96%)</title><rect x="677.5" y="293" width="34.9" height="15.0" fill="rgb(215,226,28)" rx="2" ry="2" />
+<text  x="680.47" y="303.5" >ne..</text>
+</g>
+<g >
+<title>el0_sync (58,795,249 samples, 0.40%)</title><rect x="721.0" y="485" width="4.8" height="15.0" fill="rgb(217,181,1)" rx="2" ry="2" />
+<text  x="724.02" y="495.5" ></text>
+</g>
+<g >
+<title>__schedule (76,572,903 samples, 0.53%)</title><rect x="80.9" y="357" width="6.2" height="15.0" fill="rgb(231,14,11)" rx="2" ry="2" />
+<text  x="83.93" y="367.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (389,326,006 samples, 2.68%)</title><rect x="464.3" y="293" width="31.6" height="15.0" fill="rgb(215,164,47)" rx="2" ry="2" />
+<text  x="467.28" y="303.5" >el..</text>
+</g>
+<g >
+<title>iox::popo::UsedChunkList&lt;8u&gt;::remove@plt (46,931,820 samples, 0.32%)</title><rect x="539.0" y="421" width="3.8" height="15.0" fill="rgb(214,22,12)" rx="2" ry="2" />
+<text  x="542.01" y="431.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_sendto (159,968,104 samples, 1.10%)</title><rect x="14.3" y="133" width="13.0" height="15.0" fill="rgb(232,20,43)" rx="2" ry="2" />
+<text  x="17.29" y="143.5" ></text>
+</g>
+<g >
+<title>loggerImp (28,087,646 samples, 0.19%)</title><rect x="651.6" y="517" width="2.3" height="15.0" fill="rgb(228,166,40)" rx="2" ry="2" />
+<text  x="654.65" y="527.5" ></text>
+</g>
+<g >
+<title>ownIsValidSpecificReference (21,925,443 samples, 0.15%)</title><rect x="1109.2" y="501" width="1.8" height="15.0" fill="rgb(223,56,47)" rx="2" ry="2" />
+<text  x="1112.18" y="511.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::IndexQueue&lt;256ul, unsigned long&gt;::push (37,497,090 samples, 0.26%)</title><rect x="441.0" y="325" width="3.0" height="15.0" fill="rgb(222,83,9)" rx="2" ry="2" />
+<text  x="444.00" y="335.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkSender&lt;iox::popo::ChunkSenderData&lt;8u, iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt; &gt;::getMembers@plt (17,440,950 samples, 0.12%)</title><rect x="554.0" y="437" width="1.4" height="15.0" fill="rgb(233,105,41)" rx="2" ry="2" />
+<text  x="556.97" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::ReturnSuccess&lt;void&gt;::call&lt;iox::cxx::function_ref&lt;void  (448,723,972 samples, 3.08%)</title><rect x="10.0" y="421" width="36.4" height="15.0" fill="rgb(218,173,51)" rx="2" ry="2" />
+<text  x="13.00" y="431.5" >iox..</text>
+</g>
+<g >
+<title>do_el0_svc (1,479,286,362 samples, 10.17%)</title><rect x="785.3" y="469" width="119.9" height="15.0" fill="rgb(245,140,38)" rx="2" ry="2" />
+<text  x="788.27" y="479.5" >do_el0_svc</text>
+</g>
+<g >
+<title>futex_wake (29,736,175 samples, 0.20%)</title><rect x="1071.6" y="389" width="2.5" height="15.0" fill="rgb(221,145,22)" rx="2" ry="2" />
+<text  x="1074.64" y="399.5" ></text>
+</g>
+<g >
+<title>ownCopyAndMapCheckParams (930,668,418 samples, 6.40%)</title><rect x="279.7" y="469" width="75.5" height="15.0" fill="rgb(225,64,29)" rx="2" ry="2" />
+<text  x="282.75" y="479.5" >ownCopyA..</text>
+</g>
+<g >
+<title>__handle_domain_irq (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="277" width="1.6" height="15.0" fill="rgb(208,217,42)" rx="2" ry="2" />
+<text  x="1146.79" y="287.5" ></text>
+</g>
+<g >
+<title>__schedule (21,766,177 samples, 0.15%)</title><rect x="428.1" y="341" width="1.8" height="15.0" fill="rgb(245,49,16)" rx="2" ry="2" />
+<text  x="431.11" y="351.5" ></text>
+</g>
+<g >
+<title>tivxObjDescIpcHandler (519,699,910 samples, 3.57%)</title><rect x="984.2" y="533" width="42.2" height="15.0" fill="rgb(224,185,15)" rx="2" ry="2" />
+<text  x="987.21" y="543.5" >tiv..</text>
+</g>
+<g >
+<title>rpmsg_send (284,771,172 samples, 1.96%)</title><rect x="689.3" y="261" width="23.1" height="15.0" fill="rgb(245,156,32)" rx="2" ry="2" />
+<text  x="692.31" y="271.5" >r..</text>
+</g>
+<g >
+<title>iox::posix::mutex::lock@plt (15,163,704 samples, 0.10%)</title><rect x="511.6" y="357" width="1.3" height="15.0" fill="rgb(207,6,6)" rx="2" ry="2" />
+<text  x="514.65" y="367.5" ></text>
+</g>
+<g >
+<title>irq_exit (19,943,748 samples, 0.14%)</title><rect x="900.4" y="261" width="1.6" height="15.0" fill="rgb(250,121,11)" rx="2" ry="2" />
+<text  x="903.42" y="271.5" ></text>
+</g>
+<g >
+<title>vsnprintf (155,797,342 samples, 1.07%)</title><rect x="60.6" y="517" width="12.6" height="15.0" fill="rgb(250,144,29)" rx="2" ry="2" />
+<text  x="63.56" y="527.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (16,719,574 samples, 0.11%)</title><rect x="970.2" y="181" width="1.3" height="15.0" fill="rgb(236,153,46)" rx="2" ry="2" />
+<text  x="973.16" y="191.5" ></text>
+</g>
+<g >
+<title>fpsimd_restore_current_state (12,977,106 samples, 0.09%)</title><rect x="1187.3" y="453" width="1.0" height="15.0" fill="rgb(235,213,32)" rx="2" ry="2" />
+<text  x="1190.30" y="463.5" ></text>
+</g>
+<g >
+<title>el0_svc (1,479,286,362 samples, 10.17%)</title><rect x="785.3" y="485" width="119.9" height="15.0" fill="rgb(235,17,45)" rx="2" ry="2" />
+<text  x="788.27" y="495.5" >el0_svc</text>
+</g>
+<g >
+<title>__arm64_sys_futex_time32 (29,685,260 samples, 0.20%)</title><rect x="1127.8" y="341" width="2.4" height="15.0" fill="rgb(245,164,35)" rx="2" ry="2" />
+<text  x="1130.82" y="351.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (30,233,330 samples, 0.21%)</title><rect x="527.9" y="309" width="2.4" height="15.0" fill="rgb(251,141,6)" rx="2" ry="2" />
+<text  x="530.87" y="319.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (48,541,480 samples, 0.33%)</title><rect x="49.1" y="373" width="4.0" height="15.0" fill="rgb(220,14,32)" rx="2" ry="2" />
+<text  x="52.12" y="383.5" ></text>
+</g>
+<g >
+<title>schedule (250,371,172 samples, 1.72%)</title><rect x="881.7" y="357" width="20.3" height="15.0" fill="rgb(234,38,26)" rx="2" ry="2" />
+<text  x="884.73" y="367.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (30,233,330 samples, 0.21%)</title><rect x="527.9" y="325" width="2.4" height="15.0" fill="rgb(217,28,8)" rx="2" ry="2" />
+<text  x="530.87" y="335.5" ></text>
+</g>
+<g >
+<title>kmem_cache_free (41,307,590 samples, 0.28%)</title><rect x="938.3" y="325" width="3.4" height="15.0" fill="rgb(207,38,27)" rx="2" ry="2" />
+<text  x="941.33" y="335.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (29,736,175 samples, 0.20%)</title><rect x="1071.6" y="421" width="2.5" height="15.0" fill="rgb(243,141,40)" rx="2" ry="2" />
+<text  x="1074.64" y="431.5" ></text>
+</g>
+<g >
+<title>rpmsg_eptdev_read_iter (496,571,897 samples, 3.41%)</title><rect x="937.3" y="373" width="40.3" height="15.0" fill="rgb(245,191,19)" rx="2" ry="2" />
+<text  x="940.29" y="383.5" >rpm..</text>
+</g>
+<g >
+<title>iox::cxx::MethodCallback&lt;void&gt;::operator (448,723,972 samples, 3.08%)</title><rect x="10.0" y="437" width="36.4" height="15.0" fill="rgb(239,199,52)" rx="2" ry="2" />
+<text  x="13.00" y="447.5" >iox..</text>
+</g>
+<g >
+<title>motovis::CTransfer::WriteSurviewOriginImage (17,465,498 samples, 0.12%)</title><rect x="644.0" y="501" width="1.4" height="15.0" fill="rgb(214,48,5)" rx="2" ry="2" />
+<text  x="646.99" y="511.5" ></text>
+</g>
+<g >
+<title>sock_alloc_send_pskb (159,968,104 samples, 1.10%)</title><rect x="14.3" y="85" width="13.0" height="15.0" fill="rgb(208,64,19)" rx="2" ry="2" />
+<text  x="17.29" y="95.5" ></text>
+</g>
+<g >
+<title>ownReferenceLock (18,150,874 samples, 0.12%)</title><rect x="273.3" y="469" width="1.4" height="15.0" fill="rgb(216,189,15)" rx="2" ry="2" />
+<text  x="276.28" y="479.5" ></text>
+</g>
+<g >
+<title>usleep (171,990,267 samples, 1.18%)</title><rect x="73.2" y="533" width="13.9" height="15.0" fill="rgb(226,144,13)" rx="2" ry="2" />
+<text  x="76.19" y="543.5" ></text>
+</g>
+<g >
+<title>rebalance_domains (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="213" width="1.6" height="15.0" fill="rgb(212,151,27)" rx="2" ry="2" />
+<text  x="1146.79" y="223.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (389,326,006 samples, 2.68%)</title><rect x="464.3" y="261" width="31.6" height="15.0" fill="rgb(238,198,7)" rx="2" ry="2" />
+<text  x="467.28" y="271.5" >do..</text>
+</g>
+<g >
+<title>el0_sync_handler (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="453" width="24.3" height="15.0" fill="rgb(226,162,46)" rx="2" ry="2" />
+<text  x="1124.15" y="463.5" >e..</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (843,201,399 samples, 5.80%)</title><rect x="915.8" y="453" width="68.4" height="15.0" fill="rgb(208,93,6)" rx="2" ry="2" />
+<text  x="918.82" y="463.5" >el0_svc..</text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::computeRawPtr (23,560,318 samples, 0.16%)</title><rect x="507.9" y="341" width="1.9" height="15.0" fill="rgb(245,148,53)" rx="2" ry="2" />
+<text  x="510.92" y="351.5" ></text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (607,558,544 samples, 4.18%)</title><rect x="10.0" y="469" width="49.3" height="15.0" fill="rgb(231,227,14)" rx="2" ry="2" />
+<text  x="13.00" y="479.5" >std:..</text>
+</g>
+<g >
+<title>put_cpu_partial (328,514,288 samples, 2.26%)</title><rect x="944.9" y="261" width="26.6" height="15.0" fill="rgb(244,130,43)" rx="2" ry="2" />
+<text  x="947.87" y="271.5" >p..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (49,357,804 samples, 0.34%)</title><rect x="778.1" y="533" width="4.0" height="15.0" fill="rgb(211,204,39)" rx="2" ry="2" />
+<text  x="781.10" y="543.5" ></text>
+</g>
+<g >
+<title>iox::cxx::MethodCallback&lt;void&gt;::operator (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="437" width="1.6" height="15.0" fill="rgb(222,104,39)" rx="2" ry="2" />
+<text  x="1191.35" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::expected (25,930,855 samples, 0.18%)</title><rect x="500.9" y="325" width="2.1" height="15.0" fill="rgb(232,147,11)" rx="2" ry="2" />
+<text  x="503.88" y="335.5" ></text>
+</g>
+<g >
+<title>__fdget_pos (14,296,492 samples, 0.10%)</title><rect x="921.2" y="421" width="1.2" height="15.0" fill="rgb(236,62,44)" rx="2" ry="2" />
+<text  x="924.23" y="431.5" ></text>
+</g>
+<g >
+<title>tivxTaskMain (1,840,841,218 samples, 12.65%)</title><rect x="1039.1" y="549" width="149.2" height="15.0" fill="rgb(221,37,12)" rx="2" ry="2" />
+<text  x="1042.05" y="559.5" >tivxTaskMain</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (48,541,480 samples, 0.33%)</title><rect x="49.1" y="293" width="4.0" height="15.0" fill="rgb(215,19,1)" rx="2" ry="2" />
+<text  x="52.12" y="303.5" ></text>
+</g>
+<g >
+<title>iox::popo::ThreadSafePolicy::lock (22,324,549 samples, 0.15%)</title><rect x="509.8" y="357" width="1.8" height="15.0" fill="rgb(247,179,6)" rx="2" ry="2" />
+<text  x="512.84" y="367.5" ></text>
+</g>
+<g >
+<title>irq_exit (9,222,650 samples, 0.06%)</title><rect x="710.7" y="149" width="0.7" height="15.0" fill="rgb(249,130,28)" rx="2" ry="2" />
+<text  x="713.66" y="159.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (9,222,650 samples, 0.06%)</title><rect x="710.7" y="181" width="0.7" height="15.0" fill="rgb(208,125,37)" rx="2" ry="2" />
+<text  x="713.66" y="191.5" ></text>
+</g>
+<g >
+<title>wake_up_q (186,561,993 samples, 1.28%)</title><rect x="1130.2" y="341" width="15.2" height="15.0" fill="rgb(250,110,3)" rx="2" ry="2" />
+<text  x="1133.23" y="351.5" ></text>
+</g>
+<g >
+<title>__nanosleep (171,958,760 samples, 1.18%)</title><rect x="73.2" y="517" width="13.9" height="15.0" fill="rgb(245,12,28)" rx="2" ry="2" />
+<text  x="76.20" y="527.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (18,350,433 samples, 0.13%)</title><rect x="111.2" y="453" width="1.5" height="15.0" fill="rgb(220,228,28)" rx="2" ry="2" />
+<text  x="114.18" y="463.5" ></text>
+</g>
+<g >
+<title>virtqueue_kick_prepare (53,577,664 samples, 0.37%)</title><rect x="705.3" y="213" width="4.4" height="15.0" fill="rgb(209,142,3)" rx="2" ry="2" />
+<text  x="708.31" y="223.5" ></text>
+</g>
+<g >
+<title>appIpcRpmsgRxTaskMain (3,155,335,732 samples, 21.69%)</title><rect x="774.3" y="549" width="255.9" height="15.0" fill="rgb(208,162,14)" rx="2" ry="2" />
+<text  x="777.33" y="559.5" >appIpcRpmsgRxTaskMain</text>
+</g>
+<g >
+<title>memcg_slab_free_hook (16,956,399 samples, 0.12%)</title><rect x="975.0" y="293" width="1.4" height="15.0" fill="rgb(237,171,38)" rx="2" ry="2" />
+<text  x="977.98" y="303.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (607,558,544 samples, 4.18%)</title><rect x="10.0" y="485" width="49.3" height="15.0" fill="rgb(229,41,29)" rx="2" ry="2" />
+<text  x="13.00" y="495.5" >std:..</text>
+</g>
+<g >
+<title>appIpcHwLockAcquire (21,073,243 samples, 0.14%)</title><rect x="725.8" y="501" width="1.7" height="15.0" fill="rgb(231,97,12)" rx="2" ry="2" />
+<text  x="728.79" y="511.5" ></text>
+</g>
+<g >
+<title>get_futex_key (120,441,072 samples, 0.83%)</title><rect x="466.6" y="181" width="9.8" height="15.0" fill="rgb(247,9,14)" rx="2" ry="2" />
+<text  x="469.59" y="191.5" ></text>
+</g>
+<g >
+<title>el0_svc (159,968,104 samples, 1.10%)</title><rect x="14.3" y="181" width="13.0" height="15.0" fill="rgb(213,87,15)" rx="2" ry="2" />
+<text  x="17.29" y="191.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (159,671,538 samples, 1.10%)</title><rect x="751.7" y="453" width="13.0" height="15.0" fill="rgb(234,11,20)" rx="2" ry="2" />
+<text  x="754.75" y="463.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (154,874,598 samples, 1.06%)</title><rect x="60.6" y="485" width="12.5" height="15.0" fill="rgb(214,222,17)" rx="2" ry="2" />
+<text  x="63.56" y="495.5" ></text>
+</g>
+<g >
+<title>run_rebalance_domains (11,473,307 samples, 0.08%)</title><rect x="996.6" y="405" width="0.9" height="15.0" fill="rgb(246,146,7)" rx="2" ry="2" />
+<text  x="999.55" y="415.5" ></text>
+</g>
+<g >
+<title>el0_svc (58,795,249 samples, 0.40%)</title><rect x="721.0" y="453" width="4.8" height="15.0" fill="rgb(236,30,17)" rx="2" ry="2" />
+<text  x="724.02" y="463.5" ></text>
+</g>
+<g >
+<title>__schedule (199,412,262 samples, 1.37%)</title><rect x="885.9" y="341" width="16.1" height="15.0" fill="rgb(234,158,15)" rx="2" ry="2" />
+<text  x="888.86" y="351.5" ></text>
+</g>
+<g >
+<title>irq_exit (21,154,494 samples, 0.15%)</title><rect x="1163.6" y="421" width="1.7" height="15.0" fill="rgb(245,103,41)" rx="2" ry="2" />
+<text  x="1166.63" y="431.5" ></text>
+</g>
+<g >
+<title>memcg_slab_free_hook (31,199,786 samples, 0.21%)</title><rect x="971.5" y="277" width="2.5" height="15.0" fill="rgb(216,36,23)" rx="2" ry="2" />
+<text  x="974.52" y="287.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="437" width="22.0" height="15.0" fill="rgb(254,184,7)" rx="2" ry="2" />
+<text  x="1168.34" y="447.5" >d..</text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (18,350,433 samples, 0.13%)</title><rect x="111.2" y="389" width="1.5" height="15.0" fill="rgb(252,141,2)" rx="2" ry="2" />
+<text  x="114.18" y="399.5" ></text>
+</g>
+<g >
+<title>ownNodeKernelSchedule (37,591,987 samples, 0.26%)</title><rect x="665.3" y="485" width="3.0" height="15.0" fill="rgb(234,187,30)" rx="2" ry="2" />
+<text  x="668.29" y="495.5" ></text>
+</g>
+<g >
+<title>schedule (94,139,046 samples, 0.65%)</title><rect x="79.5" y="373" width="7.6" height="15.0" fill="rgb(212,14,40)" rx="2" ry="2" />
+<text  x="82.51" y="383.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::IpcMessage (155,286,173 samples, 1.07%)</title><rect x="27.3" y="309" width="12.6" height="15.0" fill="rgb(247,168,3)" rx="2" ry="2" />
+<text  x="30.27" y="319.5" ></text>
+</g>
+<g >
+<title>futex_wait (15,081,230 samples, 0.10%)</title><rect x="51.8" y="261" width="1.3" height="15.0" fill="rgb(251,67,48)" rx="2" ry="2" />
+<text  x="54.84" y="271.5" ></text>
+</g>
+<g >
+<title>virtqueue_add_outbuf (12,338,288 samples, 0.08%)</title><rect x="711.4" y="229" width="1.0" height="15.0" fill="rgb(230,222,53)" rx="2" ry="2" />
+<text  x="714.41" y="239.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;unsigned long&gt;::has_value@plt (16,223,819 samples, 0.11%)</title><rect x="453.4" y="357" width="1.3" height="15.0" fill="rgb(254,141,24)" rx="2" ry="2" />
+<text  x="456.37" y="367.5" ></text>
+</g>
+<g >
+<title>write (27,685,351 samples, 0.19%)</title><rect x="714.1" y="453" width="2.2" height="15.0" fill="rgb(210,55,41)" rx="2" ry="2" />
+<text  x="717.09" y="463.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::createPosixCallBuilder&lt;int, sem_t*&gt;@plt (25,842,427 samples, 0.18%)</title><rect x="504.4" y="357" width="2.1" height="15.0" fill="rgb(254,97,46)" rx="2" ry="2" />
+<text  x="507.44" y="367.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_stringstream&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::~basic_stringstream (16,377,304 samples, 0.11%)</title><rect x="43.4" y="277" width="1.3" height="15.0" fill="rgb(241,95,35)" rx="2" ry="2" />
+<text  x="46.38" y="287.5" ></text>
+</g>
+<g >
+<title>tivxLogRtTraceTargetExeEnd (23,482,504 samples, 0.16%)</title><rect x="1145.4" y="517" width="1.9" height="15.0" fill="rgb(225,155,21)" rx="2" ry="2" />
+<text  x="1148.36" y="527.5" ></text>
+</g>
+<g >
+<title>rpmsg_send_offchannel_raw (242,378,834 samples, 1.67%)</title><rect x="691.7" y="229" width="19.7" height="15.0" fill="rgb(246,81,21)" rx="2" ry="2" />
+<text  x="694.75" y="239.5" ></text>
+</g>
+<g >
+<title>iox::units::Duration::timespec (19,389,141 samples, 0.13%)</title><rect x="54.5" y="421" width="1.5" height="15.0" fill="rgb(213,146,27)" rx="2" ry="2" />
+<text  x="57.47" y="431.5" ></text>
+</g>
+<g >
+<title>motovis::transport::ShmTransmitter&lt;_MvSurviewImage&gt;::transmit (2,498,881,208 samples, 17.18%)</title><rect x="408.3" y="469" width="202.6" height="15.0" fill="rgb(216,198,11)" rx="2" ry="2" />
+<text  x="411.25" y="479.5" >motovis::transport::ShmTra..</text>
+</g>
+<g >
+<title>strcmp (6,101,550 samples, 0.04%)</title><rect x="41.2" y="197" width="0.5" height="15.0" fill="rgb(221,156,28)" rx="2" ry="2" />
+<text  x="44.23" y="207.5" ></text>
+</g>
+<g >
+<title>el0_sync (41,629,402 samples, 0.29%)</title><rect x="1070.7" y="501" width="3.4" height="15.0" fill="rgb(230,180,13)" rx="2" ry="2" />
+<text  x="1073.68" y="511.5" ></text>
+</g>
+<g >
+<title>get_futex_value_locked (24,423,302 samples, 0.17%)</title><rect x="1185.3" y="357" width="2.0" height="15.0" fill="rgb(242,44,6)" rx="2" ry="2" />
+<text  x="1188.32" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::cxx::MethodCallbackError&gt;::~expected (33,596,447 samples, 0.23%)</title><rect x="46.4" y="437" width="2.7" height="15.0" fill="rgb(213,152,45)" rx="2" ry="2" />
+<text  x="49.39" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::value (21,376,746 samples, 0.15%)</title><rect x="555.4" y="421" width="1.7" height="15.0" fill="rgb(236,211,32)" rx="2" ry="2" />
+<text  x="558.38" y="431.5" ></text>
+</g>
+<g >
+<title>el0_svc (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="437" width="24.3" height="15.0" fill="rgb(244,48,41)" rx="2" ry="2" />
+<text  x="1124.15" y="447.5" >e..</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (417,909,531 samples, 2.87%)</title><rect x="12.5" y="373" width="33.9" height="15.0" fill="rgb(209,74,34)" rx="2" ry="2" />
+<text  x="15.50" y="383.5" >io..</text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (190,233,747 samples, 1.31%)</title><rect x="886.6" y="325" width="15.4" height="15.0" fill="rgb(223,159,49)" rx="2" ry="2" />
+<text  x="889.61" y="335.5" ></text>
+</g>
+<g >
+<title>do_futex (37,925,736 samples, 0.26%)</title><rect x="722.7" y="389" width="3.1" height="15.0" fill="rgb(210,159,44)" rx="2" ry="2" />
+<text  x="725.71" y="399.5" ></text>
+</g>
+<g >
+<title>iox::popo::ThreadSafePolicy::lock (204,902,200 samples, 1.41%)</title><rect x="520.7" y="389" width="16.7" height="15.0" fill="rgb(228,194,19)" rx="2" ry="2" />
+<text  x="523.74" y="399.5" ></text>
+</g>
+<g >
+<title>tivxPlatformSystemLock (52,064,544 samples, 0.36%)</title><rect x="744.7" y="485" width="4.2" height="15.0" fill="rgb(210,120,37)" rx="2" ry="2" />
+<text  x="747.69" y="495.5" ></text>
+</g>
+<g >
+<title>do_futex (33,460,250 samples, 0.23%)</title><rect x="49.1" y="261" width="2.7" height="15.0" fill="rgb(242,129,32)" rx="2" ry="2" />
+<text  x="52.12" y="271.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::cxx::MethodCallbackError&gt;::expected@plt (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="421" width="1.6" height="15.0" fill="rgb(245,108,26)" rx="2" ry="2" />
+<text  x="1191.35" y="431.5" ></text>
+</g>
+<g >
+<title>__pthread_mutex_lock (44,834,481 samples, 0.31%)</title><rect x="1117.5" y="501" width="3.6" height="15.0" fill="rgb(242,184,28)" rx="2" ry="2" />
+<text  x="1120.51" y="511.5" ></text>
+</g>
+<g >
+<title>rcu_core_si (30,233,330 samples, 0.21%)</title><rect x="527.9" y="261" width="2.4" height="15.0" fill="rgb(239,229,45)" rx="2" ry="2" />
+<text  x="530.87" y="271.5" ></text>
+</g>
+<g >
+<title>rpmsg_eptdev_write_iter (430,757,726 samples, 2.96%)</title><rect x="677.5" y="277" width="34.9" height="15.0" fill="rgb(238,208,29)" rx="2" ry="2" />
+<text  x="680.47" y="287.5" >rp..</text>
+</g>
+<g >
+<title>pthread_cond_wait (193,233,688 samples, 1.33%)</title><rect x="750.8" y="485" width="15.6" height="15.0" fill="rgb(221,111,37)" rx="2" ry="2" />
+<text  x="753.76" y="495.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (21,766,177 samples, 0.15%)</title><rect x="428.1" y="373" width="1.8" height="15.0" fill="rgb(231,166,45)" rx="2" ry="2" />
+<text  x="431.11" y="383.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_read (12,017,019 samples, 0.08%)</title><rect x="914.8" y="453" width="1.0" height="15.0" fill="rgb(223,26,13)" rx="2" ry="2" />
+<text  x="917.85" y="463.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ChunkSettings::create (21,219,971 samples, 0.15%)</title><rect x="545.1" y="437" width="1.7" height="15.0" fill="rgb(228,81,27)" rx="2" ry="2" />
+<text  x="548.09" y="447.5" ></text>
+</g>
+<g >
+<title>__errno_location@plt (17,689,687 samples, 0.12%)</title><rect x="462.8" y="341" width="1.5" height="15.0" fill="rgb(230,149,49)" rx="2" ry="2" />
+<text  x="465.84" y="351.5" ></text>
+</g>
+<g >
+<title>skb_release_all (14,946,682 samples, 0.10%)</title><rect x="976.4" y="357" width="1.2" height="15.0" fill="rgb(220,204,34)" rx="2" ry="2" />
+<text  x="979.35" y="367.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (9,222,650 samples, 0.06%)</title><rect x="710.7" y="133" width="0.7" height="15.0" fill="rgb(227,43,49)" rx="2" ry="2" />
+<text  x="713.66" y="143.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (93,229,356 samples, 0.64%)</title><rect x="905.2" y="501" width="7.6" height="15.0" fill="rgb(218,51,44)" rx="2" ry="2" />
+<text  x="908.24" y="511.5" ></text>
+</g>
+<g >
+<title>tivxTargetQueueObjDesc (47,829,324 samples, 0.33%)</title><rect x="1026.4" y="533" width="3.8" height="15.0" fill="rgb(205,151,13)" rx="2" ry="2" />
+<text  x="1029.36" y="543.5" ></text>
+</g>
+<g >
+<title>ownIsValidSpecificReference (23,870,397 samples, 0.16%)</title><rect x="1112.5" y="485" width="1.9" height="15.0" fill="rgb(246,163,7)" rx="2" ry="2" />
+<text  x="1115.51" y="495.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::mepoo::ShmSafeUnmanagedChunk const&gt;@plt (23,341,591 samples, 0.16%)</title><rect x="446.4" y="357" width="1.9" height="15.0" fill="rgb(251,156,8)" rx="2" ry="2" />
+<text  x="449.36" y="367.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="277" width="1.3" height="15.0" fill="rgb(217,74,17)" rx="2" ry="2" />
+<text  x="1185.26" y="287.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (21,448,463 samples, 0.15%)</title><rect x="764.7" y="453" width="1.7" height="15.0" fill="rgb(221,50,17)" rx="2" ry="2" />
+<text  x="767.70" y="463.5" ></text>
+</g>
+<g >
+<title>try_to_wake_up (16,615,910 samples, 0.11%)</title><rect x="494.5" y="165" width="1.4" height="15.0" fill="rgb(245,187,42)" rx="2" ry="2" />
+<text  x="497.50" y="175.5" ></text>
+</g>
+<g >
+<title>operator new (74,124,523 samples, 0.51%)</title><rect x="610.9" y="469" width="6.0" height="15.0" fill="rgb(242,154,14)" rx="2" ry="2" />
+<text  x="613.92" y="479.5" ></text>
+</g>
+<g >
+<title>iox_sendto (159,968,104 samples, 1.10%)</title><rect x="14.3" y="245" width="13.0" height="15.0" fill="rgb(212,66,32)" rx="2" ry="2" />
+<text  x="17.29" y="255.5" ></text>
+</g>
+<g >
+<title>_copy_to_iter (12,744,124 samples, 0.09%)</title><rect x="937.3" y="357" width="1.0" height="15.0" fill="rgb(217,142,15)" rx="2" ry="2" />
+<text  x="940.29" y="367.5" ></text>
+</g>
+<g >
+<title>capture_graph_process (8,428,799,975 samples, 57.93%)</title><rect x="87.1" y="533" width="683.6" height="15.0" fill="rgb(212,29,24)" rx="2" ry="2" />
+<text  x="90.14" y="543.5" >capture_graph_process</text>
+</g>
+<g >
+<title>KeepAlive (607,558,544 samples, 4.18%)</title><rect x="10.0" y="597" width="49.3" height="15.0" fill="rgb(251,96,42)" rx="2" ry="2" />
+<text  x="13.00" y="607.5" >Keep..</text>
+</g>
+<g >
+<title>tivxPlatformSystemLock (22,024,403 samples, 0.15%)</title><rect x="766.4" y="501" width="1.8" height="15.0" fill="rgb(242,178,25)" rx="2" ry="2" />
+<text  x="769.44" y="511.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (58,795,249 samples, 0.40%)</title><rect x="721.0" y="501" width="4.8" height="15.0" fill="rgb(229,96,27)" rx="2" ry="2" />
+<text  x="724.02" y="511.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (171,003,584 samples, 1.18%)</title><rect x="630.1" y="469" width="13.9" height="15.0" fill="rgb(207,2,46)" rx="2" ry="2" />
+<text  x="633.12" y="479.5" ></text>
+</g>
+<g >
+<title>tivxLogSetResourceUsedValue (21,244,473 samples, 0.15%)</title><rect x="381.0" y="469" width="1.7" height="15.0" fill="rgb(233,19,16)" rx="2" ry="2" />
+<text  x="383.96" y="479.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::call_at_index&lt;0ul, iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::destructor@plt (17,033,139 samples, 0.12%)</title><rect x="557.1" y="389" width="1.4" height="15.0" fill="rgb(246,221,6)" rx="2" ry="2" />
+<text  x="560.11" y="399.5" ></text>
+</g>
+<g >
+<title>vxRetrieveNodeCallback (43,036,706 samples, 0.30%)</title><rect x="1111.0" y="501" width="3.4" height="15.0" fill="rgb(225,13,43)" rx="2" ry="2" />
+<text  x="1113.96" y="511.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (11,473,307 samples, 0.08%)</title><rect x="996.6" y="389" width="0.9" height="15.0" fill="rgb(221,151,38)" rx="2" ry="2" />
+<text  x="999.55" y="399.5" ></text>
+</g>
+<g >
+<title>captureGraph (8,428,799,975 samples, 57.93%)</title><rect x="87.1" y="597" width="683.6" height="15.0" fill="rgb(214,18,23)" rx="2" ry="2" />
+<text  x="90.14" y="607.5" >captureGraph</text>
+</g>
+<g >
+<title>el0_sync (355,982,052 samples, 2.45%)</title><rect x="997.5" y="469" width="28.9" height="15.0" fill="rgb(214,193,31)" rx="2" ry="2" />
+<text  x="1000.48" y="479.5" >el..</text>
+</g>
+<g >
+<title>tivxTargetTaskMain (1,741,479,238 samples, 11.97%)</title><rect x="1047.1" y="533" width="141.2" height="15.0" fill="rgb(219,145,42)" rx="2" ry="2" />
+<text  x="1050.11" y="543.5" >tivxTargetTaskMain</text>
+</g>
+<g >
+<title>do_select (24,414,482 samples, 0.17%)</title><rect x="903.3" y="421" width="1.9" height="15.0" fill="rgb(222,180,44)" rx="2" ry="2" />
+<text  x="906.26" y="431.5" ></text>
+</g>
+<g >
+<title>el0_svc (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="453" width="22.0" height="15.0" fill="rgb(219,146,51)" rx="2" ry="2" />
+<text  x="1168.34" y="463.5" >e..</text>
+</g>
+<g >
+<title>irq_exit (18,350,433 samples, 0.13%)</title><rect x="111.2" y="421" width="1.5" height="15.0" fill="rgb(225,162,15)" rx="2" ry="2" />
+<text  x="114.18" y="431.5" ></text>
+</g>
+<g >
+<title>main (343,622,194 samples, 2.36%)</title><rect x="59.3" y="549" width="27.8" height="15.0" fill="rgb(247,128,41)" rx="2" ry="2" />
+<text  x="62.27" y="559.5" >m..</text>
+</g>
+<g >
+<title>iox::cxx::internal::Require@plt (45,672,133 samples, 0.31%)</title><rect x="449.7" y="357" width="3.7" height="15.0" fill="rgb(227,117,32)" rx="2" ry="2" />
+<text  x="452.67" y="367.5" ></text>
+</g>
+<g >
+<title>futex_wait_queue_me (38,268,554 samples, 0.26%)</title><rect x="761.6" y="341" width="3.1" height="15.0" fill="rgb(225,114,8)" rx="2" ry="2" />
+<text  x="764.59" y="351.5" ></text>
+</g>
+<g >
+<title>_copy_from_iter_full (43,108,288 samples, 0.30%)</title><rect x="679.1" y="261" width="3.5" height="15.0" fill="rgb(232,71,25)" rx="2" ry="2" />
+<text  x="682.12" y="271.5" ></text>
+</g>
+<g >
+<title>std::atomic&lt;iox::concurrent::CyclicIndex&lt;256ul, unsigned long&gt; &gt;::load (82,401,184 samples, 0.57%)</title><rect x="434.3" y="309" width="6.7" height="15.0" fill="rgb(247,101,16)" rx="2" ry="2" />
+<text  x="437.32" y="319.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::SharedChunk (43,565,256 samples, 0.30%)</title><rect x="569.7" y="421" width="3.6" height="15.0" fill="rgb(233,217,20)" rx="2" ry="2" />
+<text  x="572.75" y="431.5" ></text>
+</g>
+<g >
+<title>ownReferenceGetHandleFromObjDescId (40,702,041 samples, 0.28%)</title><rect x="730.3" y="485" width="3.3" height="15.0" fill="rgb(253,39,18)" rx="2" ry="2" />
+<text  x="733.30" y="495.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::incrementReferenceCounter@plt (22,549,128 samples, 0.15%)</title><rect x="571.5" y="405" width="1.8" height="15.0" fill="rgb(253,18,2)" rx="2" ry="2" />
+<text  x="574.45" y="415.5" ></text>
+</g>
+<g >
+<title>ksys_read (762,178,720 samples, 5.24%)</title><rect x="922.4" y="421" width="61.8" height="15.0" fill="rgb(227,156,22)" rx="2" ry="2" />
+<text  x="925.39" y="431.5" >ksys_r..</text>
+</g>
+<g >
+<title>iox::popo::UniquePortId::UniquePortId@plt (27,430,290 samples, 0.19%)</title><rect x="604.4" y="437" width="2.2" height="15.0" fill="rgb(235,100,19)" rx="2" ry="2" />
+<text  x="607.39" y="447.5" ></text>
+</g>
+<g >
+<title>rcu_core (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="197" width="1.3" height="15.0" fill="rgb(234,228,6)" rx="2" ry="2" />
+<text  x="1185.26" y="207.5" ></text>
+</g>
+<g >
+<title>malloc (21,273,653 samples, 0.15%)</title><rect x="406.5" y="469" width="1.8" height="15.0" fill="rgb(234,40,39)" rx="2" ry="2" />
+<text  x="409.53" y="479.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (8,428,799,975 samples, 57.93%)</title><rect x="87.1" y="581" width="683.6" height="15.0" fill="rgb(225,101,54)" rx="2" ry="2" />
+<text  x="90.14" y="591.5" >[libc-2.30.so]</text>
+</g>
+<g >
+<title>ownIsValidSpecificReference (11,742,150 samples, 0.08%)</title><rect x="1078.3" y="501" width="1.0" height="15.0" fill="rgb(251,159,38)" rx="2" ry="2" />
+<text  x="1081.32" y="511.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_write (465,365,164 samples, 3.20%)</title><rect x="676.4" y="341" width="37.7" height="15.0" fill="rgb(243,56,35)" rx="2" ry="2" />
+<text  x="679.35" y="351.5" >__a..</text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::computeRawPtr (139,212,401 samples, 0.96%)</title><rect x="576.7" y="373" width="11.3" height="15.0" fill="rgb(223,147,53)" rx="2" ry="2" />
+<text  x="579.66" y="383.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (448,723,972 samples, 3.08%)</title><rect x="10.0" y="389" width="36.4" height="15.0" fill="rgb(221,172,40)" rx="2" ry="2" />
+<text  x="13.00" y="399.5" >iox..</text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="469" width="1.6" height="15.0" fill="rgb(233,131,7)" rx="2" ry="2" />
+<text  x="1191.35" y="479.5" ></text>
+</g>
+<g >
+<title>fput (12,965,156 samples, 0.09%)</title><rect x="837.5" y="373" width="1.1" height="15.0" fill="rgb(239,119,6)" rx="2" ry="2" />
+<text  x="840.54" y="383.5" ></text>
+</g>
+<g >
+<title>irq_exit (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="245" width="1.3" height="15.0" fill="rgb(230,43,35)" rx="2" ry="2" />
+<text  x="1185.26" y="255.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::find@plt (20,902,471 samples, 0.14%)</title><rect x="38.2" y="277" width="1.7" height="15.0" fill="rgb(234,57,15)" rx="2" ry="2" />
+<text  x="41.16" y="287.5" ></text>
+</g>
+<g >
+<title>tivxQueueGet (398,635,346 samples, 2.74%)</title><rect x="1156.0" y="517" width="32.3" height="15.0" fill="rgb(241,58,32)" rx="2" ry="2" />
+<text  x="1159.02" y="527.5" >ti..</text>
+</g>
+<g >
+<title>do_el0_svc (107,221,179 samples, 0.74%)</title><rect x="78.4" y="453" width="8.7" height="15.0" fill="rgb(210,209,35)" rx="2" ry="2" />
+<text  x="81.45" y="463.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (355,982,052 samples, 2.45%)</title><rect x="997.5" y="421" width="28.9" height="15.0" fill="rgb(223,35,22)" rx="2" ry="2" />
+<text  x="1000.48" y="431.5" >do..</text>
+</g>
+<g >
+<title>iox::cxx::internal::call_at_index&lt;0ul, iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::destructor@plt (27,980,898 samples, 0.19%)</title><rect x="525.6" y="325" width="2.3" height="15.0" fill="rgb(208,50,25)" rx="2" ry="2" />
+<text  x="528.60" y="335.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (607,558,544 samples, 4.18%)</title><rect x="10.0" y="517" width="49.3" height="15.0" fill="rgb(233,48,7)" rx="2" ry="2" />
+<text  x="13.00" y="527.5" >std:..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (607,558,544 samples, 4.18%)</title><rect x="10.0" y="581" width="49.3" height="15.0" fill="rgb(226,39,19)" rx="2" ry="2" />
+<text  x="13.00" y="591.5" >[lib..</text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="485" width="1.6" height="15.0" fill="rgb(226,93,31)" rx="2" ry="2" />
+<text  x="1191.35" y="495.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::operator=@plt (21,766,177 samples, 0.15%)</title><rect x="428.1" y="405" width="1.8" height="15.0" fill="rgb(224,210,26)" rx="2" ry="2" />
+<text  x="431.11" y="415.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (607,558,544 samples, 4.18%)</title><rect x="10.0" y="565" width="49.3" height="15.0" fill="rgb(246,93,50)" rx="2" ry="2" />
+<text  x="13.00" y="575.5" >[lib..</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (22,109,334 samples, 0.15%)</title><rect x="12.5" y="293" width="1.8" height="15.0" fill="rgb(242,136,2)" rx="2" ry="2" />
+<text  x="15.50" y="303.5" ></text>
+</g>
+<g >
+<title>ownCheckGraphCompleted (400,602,281 samples, 2.75%)</title><rect x="1075.5" y="517" width="32.5" height="15.0" fill="rgb(241,159,6)" rx="2" ry="2" />
+<text  x="1078.49" y="527.5" >ow..</text>
+</g>
+<g >
+<title>vmalloc_to_page (21,613,569 samples, 0.15%)</title><rect x="709.7" y="213" width="1.7" height="15.0" fill="rgb(210,84,7)" rx="2" ry="2" />
+<text  x="712.65" y="223.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (35,697,555 samples, 0.25%)</title><rect x="1162.4" y="485" width="2.9" height="15.0" fill="rgb(223,55,26)" rx="2" ry="2" />
+<text  x="1165.45" y="495.5" ></text>
+</g>
+<g >
+<title>futex_wake (302,844,621 samples, 2.08%)</title><rect x="1001.8" y="357" width="24.6" height="15.0" fill="rgb(205,173,44)" rx="2" ry="2" />
+<text  x="1004.79" y="367.5" >f..</text>
+</g>
+<g >
+<title>el1_irq (16,719,574 samples, 0.11%)</title><rect x="970.2" y="245" width="1.3" height="15.0" fill="rgb(223,152,3)" rx="2" ry="2" />
+<text  x="973.16" y="255.5" ></text>
+</g>
+<g >
+<title>__pthread_mutex_lock (37,887,306 samples, 0.26%)</title><rect x="991.6" y="501" width="3.0" height="15.0" fill="rgb(221,182,23)" rx="2" ry="2" />
+<text  x="994.56" y="511.5" ></text>
+</g>
+<g >
+<title>put_cpu_partial (14,166,663 samples, 0.10%)</title><rect x="940.5" y="293" width="1.2" height="15.0" fill="rgb(246,179,26)" rx="2" ry="2" />
+<text  x="943.53" y="303.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::SharedChunk (27,666,691 samples, 0.19%)</title><rect x="425.9" y="405" width="2.2" height="15.0" fill="rgb(235,11,19)" rx="2" ry="2" />
+<text  x="428.86" y="415.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (159,968,104 samples, 1.10%)</title><rect x="14.3" y="165" width="13.0" height="15.0" fill="rgb(232,183,25)" rx="2" ry="2" />
+<text  x="17.29" y="175.5" ></text>
+</g>
+<g >
+<title>WriteData (2,817,990,670 samples, 19.37%)</title><rect x="396.6" y="501" width="228.5" height="15.0" fill="rgb(205,117,49)" rx="2" ry="2" />
+<text  x="399.60" y="511.5" >WriteData</text>
+</g>
+<g >
+<title>__handle_domain_irq (21,154,494 samples, 0.15%)</title><rect x="1163.6" y="437" width="1.7" height="15.0" fill="rgb(220,204,31)" rx="2" ry="2" />
+<text  x="1166.63" y="447.5" ></text>
+</g>
+<g >
+<title>el0_sync (159,968,104 samples, 1.10%)</title><rect x="14.3" y="213" width="13.0" height="15.0" fill="rgb(209,47,25)" rx="2" ry="2" />
+<text  x="17.29" y="223.5" ></text>
+</g>
+<g >
+<title>rpmsg_poll (165,790,414 samples, 1.14%)</title><rect x="865.7" y="389" width="13.5" height="15.0" fill="rgb(229,114,31)" rx="2" ry="2" />
+<text  x="868.72" y="399.5" ></text>
+</g>
+<g >
+<title>rcu_core_si (19,943,748 samples, 0.14%)</title><rect x="900.4" y="229" width="1.6" height="15.0" fill="rgb(233,170,26)" rx="2" ry="2" />
+<text  x="903.42" y="239.5" ></text>
+</g>
+<g >
+<title>ksys_write (465,365,164 samples, 3.20%)</title><rect x="676.4" y="325" width="37.7" height="15.0" fill="rgb(229,35,7)" rx="2" ry="2" />
+<text  x="679.35" y="335.5" >ksy..</text>
+</g>
+<g >
+<title>std::numeric_limits&lt;unsigned int&gt;::max@plt (18,104,533 samples, 0.12%)</title><rect x="599.1" y="421" width="1.4" height="15.0" fill="rgb(247,98,39)" rx="2" ry="2" />
+<text  x="602.08" y="431.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (116,242,065 samples, 0.80%)</title><rect x="1174.2" y="309" width="9.4" height="15.0" fill="rgb(218,202,35)" rx="2" ry="2" />
+<text  x="1177.21" y="319.5" ></text>
+</g>
+<g >
+<title>vxMapImagePatch (1,362,743,488 samples, 9.37%)</title><rect x="277.9" y="485" width="110.5" height="15.0" fill="rgb(254,203,19)" rx="2" ry="2" />
+<text  x="280.89" y="495.5" >vxMapImagePatch</text>
+</g>
+<g >
+<title>loggerImp (171,003,584 samples, 1.18%)</title><rect x="630.1" y="501" width="13.9" height="15.0" fill="rgb(229,136,52)" rx="2" ry="2" />
+<text  x="633.12" y="511.5" ></text>
+</g>
+<g >
+<title>ownIsValidContext (19,166,309 samples, 0.13%)</title><rect x="1111.0" y="485" width="1.5" height="15.0" fill="rgb(246,51,19)" rx="2" ry="2" />
+<text  x="1113.96" y="495.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (48,541,480 samples, 0.33%)</title><rect x="49.1" y="277" width="4.0" height="15.0" fill="rgb(240,110,23)" rx="2" ry="2" />
+<text  x="52.12" y="287.5" ></text>
+</g>
+<g >
+<title>motovis::CTransfer::WriteSurviewOriginImage (2,710,372,849 samples, 18.63%)</title><rect x="398.6" y="485" width="219.8" height="15.0" fill="rgb(233,58,19)" rx="2" ry="2" />
+<text  x="401.55" y="495.5" >motovis::CTransfer::WriteSurv..</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~variant@plt (30,233,330 samples, 0.21%)</title><rect x="527.9" y="357" width="2.4" height="15.0" fill="rgb(219,66,35)" rx="2" ry="2" />
+<text  x="530.87" y="367.5" ></text>
+</g>
+<g >
+<title>add_input_to_other_graph (6,917,369,039 samples, 47.54%)</title><rect x="90.6" y="517" width="561.0" height="15.0" fill="rgb(219,114,38)" rx="2" ry="2" />
+<text  x="93.63" y="527.5" >add_input_to_other_graph</text>
+</g>
+<g >
+<title>kfree (410,617,102 samples, 2.82%)</title><rect x="941.7" y="293" width="33.3" height="15.0" fill="rgb(223,181,27)" rx="2" ry="2" />
+<text  x="944.68" y="303.5" >kf..</text>
+</g>
+<g >
+<title>mbox_send_message (57,321,228 samples, 0.39%)</title><rect x="700.7" y="165" width="4.6" height="15.0" fill="rgb(236,149,25)" rx="2" ry="2" />
+<text  x="703.66" y="175.5" ></text>
+</g>
+<g >
+<title>rcu_report_qs_rsp (30,233,330 samples, 0.21%)</title><rect x="527.9" y="213" width="2.4" height="15.0" fill="rgb(208,117,33)" rx="2" ry="2" />
+<text  x="530.87" y="223.5" ></text>
+</g>
+<g >
+<title>el0_sync (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="485" width="22.0" height="15.0" fill="rgb(240,212,26)" rx="2" ry="2" />
+<text  x="1168.34" y="495.5" >e..</text>
+</g>
+<g >
+<title>iox::posix::Semaphore::post (512,878,212 samples, 3.53%)</title><rect x="462.8" y="357" width="41.6" height="15.0" fill="rgb(240,121,30)" rx="2" ry="2" />
+<text  x="465.84" y="367.5" >iox..</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (159,968,104 samples, 1.10%)</title><rect x="14.3" y="149" width="13.0" height="15.0" fill="rgb(220,198,23)" rx="2" ry="2" />
+<text  x="17.29" y="159.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="517" width="1.6" height="15.0" fill="rgb(242,16,34)" rx="2" ry="2" />
+<text  x="1191.35" y="527.5" ></text>
+</g>
+<g >
+<title>cfree (24,025,312 samples, 0.17%)</title><rect x="396.6" y="485" width="2.0" height="15.0" fill="rgb(237,143,41)" rx="2" ry="2" />
+<text  x="399.60" y="495.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (9,222,650 samples, 0.06%)</title><rect x="710.7" y="165" width="0.7" height="15.0" fill="rgb(241,129,44)" rx="2" ry="2" />
+<text  x="713.66" y="175.5" ></text>
+</g>
+<g >
+<title>tivxObjDescGet (38,776,469 samples, 0.27%)</title><rect x="274.7" y="469" width="3.2" height="15.0" fill="rgb(252,82,40)" rx="2" ry="2" />
+<text  x="277.75" y="479.5" ></text>
+</g>
+<g >
+<title>ownIsValidReference (18,002,550 samples, 0.12%)</title><rect x="648.3" y="485" width="1.5" height="15.0" fill="rgb(205,9,10)" rx="2" ry="2" />
+<text  x="651.30" y="495.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (57,321,228 samples, 0.39%)</title><rect x="700.7" y="149" width="4.6" height="15.0" fill="rgb(229,93,48)" rx="2" ry="2" />
+<text  x="703.66" y="159.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (16,615,910 samples, 0.11%)</title><rect x="494.5" y="101" width="1.4" height="15.0" fill="rgb(210,82,45)" rx="2" ry="2" />
+<text  x="497.50" y="111.5" ></text>
+</g>
+<g >
+<title>iox::popo::PublisherPortUser::sendChunk@plt (34,551,248 samples, 0.24%)</title><rect x="403.7" y="469" width="2.8" height="15.0" fill="rgb(234,198,29)" rx="2" ry="2" />
+<text  x="406.73" y="479.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::decrementReferenceCounter@plt (21,016,128 samples, 0.14%)</title><rect x="569.7" y="405" width="1.8" height="15.0" fill="rgb(253,134,53)" rx="2" ry="2" />
+<text  x="572.75" y="415.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="293" width="1.6" height="15.0" fill="rgb(252,134,34)" rx="2" ry="2" />
+<text  x="1146.79" y="303.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ChunkHeader::ChunkHeader (13,088,271 samples, 0.09%)</title><rect x="559.7" y="421" width="1.1" height="15.0" fill="rgb(216,119,1)" rx="2" ry="2" />
+<text  x="562.72" y="431.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::methodCallbackCaller&lt;void, iox::runtime::PoshRuntimeImpl&gt; (417,909,531 samples, 2.87%)</title><rect x="12.5" y="357" width="33.9" height="15.0" fill="rgb(241,118,15)" rx="2" ry="2" />
+<text  x="15.50" y="367.5" >io..</text>
+</g>
+<g >
+<title>el0_sync (389,326,006 samples, 2.68%)</title><rect x="464.3" y="309" width="31.6" height="15.0" fill="rgb(238,19,32)" rx="2" ry="2" />
+<text  x="467.28" y="319.5" >el..</text>
+</g>
+<g >
+<title>iox::popo::ChunkDistributor&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt;::addToHistoryWithoutDelivery (18,707,776 samples, 0.13%)</title><rect x="429.9" y="405" width="1.5" height="15.0" fill="rgb(230,19,21)" rx="2" ry="2" />
+<text  x="432.87" y="415.5" ></text>
+</g>
+<g >
+<title>swake_up_one (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="149" width="1.3" height="15.0" fill="rgb(248,45,10)" rx="2" ry="2" />
+<text  x="1185.26" y="159.5" ></text>
+</g>
+<g >
+<title>read@plt (36,702,383 samples, 0.25%)</title><rect x="1032.6" y="549" width="2.9" height="15.0" fill="rgb(235,19,38)" rx="2" ry="2" />
+<text  x="1035.56" y="559.5" ></text>
+</g>
+<g >
+<title>pthread_cond_wait (371,722,972 samples, 2.55%)</title><rect x="1158.2" y="501" width="30.1" height="15.0" fill="rgb(215,158,0)" rx="2" ry="2" />
+<text  x="1161.20" y="511.5" >pt..</text>
+</g>
+<g >
+<title>eventfd_poll (15,127,216 samples, 0.10%)</title><rect x="902.0" y="405" width="1.3" height="15.0" fill="rgb(229,39,5)" rx="2" ry="2" />
+<text  x="905.04" y="415.5" ></text>
+</g>
+<g >
+<title>tivxDataRefQueueDequeueDoneRef (245,760,738 samples, 1.69%)</title><rect x="729.0" y="501" width="19.9" height="15.0" fill="rgb(234,207,43)" rx="2" ry="2" />
+<text  x="731.98" y="511.5" ></text>
+</g>
+<g >
+<title>alloc_skb_with_frags (159,968,104 samples, 1.10%)</title><rect x="14.3" y="69" width="13.0" height="15.0" fill="rgb(252,144,15)" rx="2" ry="2" />
+<text  x="17.29" y="79.5" ></text>
+</g>
+<g >
+<title>preempt_schedule_common (16,615,910 samples, 0.11%)</title><rect x="494.5" y="133" width="1.4" height="15.0" fill="rgb(235,65,40)" rx="2" ry="2" />
+<text  x="497.50" y="143.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;long, int, void const*, unsigned long, int, sockaddr const*, unsigned int&gt;::operator (159,968,104 samples, 1.10%)</title><rect x="14.3" y="261" width="13.0" height="15.0" fill="rgb(207,199,16)" rx="2" ry="2" />
+<text  x="17.29" y="271.5" ></text>
+</g>
+<g >
+<title>motovis::transport::ShmTransmitter&lt;_MvSurviewImage&gt;::transmit (23,088,409 samples, 0.16%)</title><rect x="618.4" y="485" width="1.8" height="15.0" fill="rgb(241,112,17)" rx="2" ry="2" />
+<text  x="621.37" y="495.5" ></text>
+</g>
+<g >
+<title>iox::rp::RelativePointerData::isLogicalNullptr (17,304,431 samples, 0.12%)</title><rect x="595.5" y="421" width="1.4" height="15.0" fill="rgb(219,18,22)" rx="2" ry="2" />
+<text  x="598.48" y="431.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="533" width="1.6" height="15.0" fill="rgb(242,56,28)" rx="2" ry="2" />
+<text  x="1191.35" y="543.5" ></text>
+</g>
+<g >
+<title>irq_exit (11,473,307 samples, 0.08%)</title><rect x="996.6" y="437" width="0.9" height="15.0" fill="rgb(234,110,3)" rx="2" ry="2" />
+<text  x="999.55" y="447.5" ></text>
+</g>
+<g >
+<title>ownGraphGetParameterDataRefQueue (18,320,986 samples, 0.13%)</title><rect x="653.9" y="517" width="1.5" height="15.0" fill="rgb(238,178,2)" rx="2" ry="2" />
+<text  x="656.92" y="527.5" ></text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getPtr (139,212,401 samples, 0.96%)</title><rect x="576.7" y="357" width="11.3" height="15.0" fill="rgb(225,105,34)" rx="2" ry="2" />
+<text  x="579.66" y="367.5" ></text>
+</g>
+<g >
+<title>tivxQueuePut (391,149,018 samples, 2.69%)</title><rect x="994.6" y="501" width="31.8" height="15.0" fill="rgb(236,144,50)" rx="2" ry="2" />
+<text  x="997.63" y="511.5" >ti..</text>
+</g>
+<g >
+<title>__handle_domain_irq (19,943,748 samples, 0.14%)</title><rect x="900.4" y="277" width="1.6" height="15.0" fill="rgb(220,6,47)" rx="2" ry="2" />
+<text  x="903.42" y="287.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (21,154,494 samples, 0.15%)</title><rect x="1163.6" y="389" width="1.7" height="15.0" fill="rgb(242,139,36)" rx="2" ry="2" />
+<text  x="1166.63" y="399.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (18,654,866 samples, 0.13%)</title><rect x="625.1" y="501" width="1.6" height="15.0" fill="rgb(208,135,31)" rx="2" ry="2" />
+<text  x="628.15" y="511.5" ></text>
+</g>
+<g >
+<title>virtqueue_get_buf (30,160,631 samples, 0.21%)</title><rect x="691.7" y="197" width="2.5" height="15.0" fill="rgb(211,170,16)" rx="2" ry="2" />
+<text  x="694.75" y="207.5" ></text>
+</g>
+<g >
+<title>__schedule (38,268,554 samples, 0.26%)</title><rect x="761.6" y="309" width="3.1" height="15.0" fill="rgb(237,55,14)" rx="2" ry="2" />
+<text  x="764.59" y="319.5" ></text>
+</g>
+<g >
+<title>__sched_text_start (20,390,570 samples, 0.14%)</title><rect x="703.7" y="117" width="1.6" height="15.0" fill="rgb(229,11,0)" rx="2" ry="2" />
+<text  x="706.65" y="127.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::createPosixCallBuilder&lt;int, pthread_mutex_t*&gt; (24,623,140 samples, 0.17%)</title><rect x="535.4" y="357" width="2.0" height="15.0" fill="rgb(222,174,52)" rx="2" ry="2" />
+<text  x="538.36" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~expected (27,980,898 samples, 0.19%)</title><rect x="525.6" y="357" width="2.3" height="15.0" fill="rgb(220,207,10)" rx="2" ry="2" />
+<text  x="528.60" y="367.5" ></text>
+</g>
+<g >
+<title>iox::popo::PublisherPortUser::sendChunk (1,654,262,936 samples, 11.37%)</title><rect x="410.9" y="453" width="134.2" height="15.0" fill="rgb(212,11,27)" rx="2" ry="2" />
+<text  x="413.93" y="463.5" >iox::popo::Publi..</text>
+</g>
+<g >
+<title>__softirqentry_text_start (18,350,433 samples, 0.13%)</title><rect x="111.2" y="405" width="1.5" height="15.0" fill="rgb(225,57,20)" rx="2" ry="2" />
+<text  x="114.18" y="415.5" ></text>
+</g>
+<g >
+<title>fpsimd_restore_current_state (81,263,301 samples, 0.56%)</title><rect x="906.2" y="485" width="6.6" height="15.0" fill="rgb(216,227,21)" rx="2" ry="2" />
+<text  x="909.21" y="495.5" ></text>
+</g>
+<g >
+<title>virtqueue_kick (137,026,970 samples, 0.94%)</title><rect x="694.2" y="213" width="11.1" height="15.0" fill="rgb(228,81,9)" rx="2" ry="2" />
+<text  x="697.19" y="223.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (855,218,418 samples, 5.88%)</title><rect x="914.8" y="501" width="69.4" height="15.0" fill="rgb(227,164,6)" rx="2" ry="2" />
+<text  x="917.85" y="511.5" >el0_syn..</text>
+</g>
+<g >
+<title>GetImageVirAddr (3,749,883,279 samples, 25.77%)</title><rect x="92.5" y="501" width="304.1" height="15.0" fill="rgb(250,40,9)" rx="2" ry="2" />
+<text  x="95.48" y="511.5" >GetImageVirAddr</text>
+</g>
+<g >
+<title>write (497,008,600 samples, 3.42%)</title><rect x="673.8" y="437" width="40.3" height="15.0" fill="rgb(218,42,46)" rx="2" ry="2" />
+<text  x="676.79" y="447.5" >write</text>
+</g>
+<g >
+<title>el0_svc (855,218,418 samples, 5.88%)</title><rect x="914.8" y="485" width="69.4" height="15.0" fill="rgb(241,79,18)" rx="2" ry="2" />
+<text  x="917.85" y="495.5" >el0_svc</text>
+</g>
+<g >
+<title>iox::cxx::internal::Require@plt (26,909,698 samples, 0.18%)</title><rect x="581.2" y="293" width="2.2" height="15.0" fill="rgb(211,220,25)" rx="2" ry="2" />
+<text  x="584.19" y="303.5" ></text>
+</g>
+<g >
+<title>kfree (60,950,662 samples, 0.42%)</title><rect x="682.6" y="261" width="5.0" height="15.0" fill="rgb(211,179,17)" rx="2" ry="2" />
+<text  x="685.62" y="271.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (17,189,043 samples, 0.12%)</title><rect x="405.1" y="389" width="1.4" height="15.0" fill="rgb(211,143,24)" rx="2" ry="2" />
+<text  x="408.13" y="399.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (17,189,043 samples, 0.12%)</title><rect x="405.1" y="437" width="1.4" height="15.0" fill="rgb(239,170,33)" rx="2" ry="2" />
+<text  x="408.13" y="447.5" ></text>
+</g>
+<g >
+<title>futex_wait_setup (16,524,775 samples, 0.11%)</title><rect x="50.5" y="229" width="1.3" height="15.0" fill="rgb(237,173,48)" rx="2" ry="2" />
+<text  x="53.50" y="239.5" ></text>
+</g>
+<g >
+<title>virtio_rpmsg_send (284,771,172 samples, 1.96%)</title><rect x="689.3" y="245" width="23.1" height="15.0" fill="rgb(216,106,6)" rx="2" ry="2" />
+<text  x="692.31" y="255.5" >v..</text>
+</g>
+<g >
+<title>schedule (17,189,043 samples, 0.12%)</title><rect x="405.1" y="421" width="1.4" height="15.0" fill="rgb(231,102,10)" rx="2" ry="2" />
+<text  x="408.13" y="431.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::SemaphoreError&gt;::~variant@plt (23,351,276 samples, 0.16%)</title><rect x="459.6" y="357" width="1.9" height="15.0" fill="rgb(207,153,12)" rx="2" ry="2" />
+<text  x="462.63" y="367.5" ></text>
+</g>
+<g >
+<title>wake_up_q (240,357,177 samples, 1.65%)</title><rect x="476.4" y="181" width="19.5" height="15.0" fill="rgb(207,144,20)" rx="2" ry="2" />
+<text  x="479.36" y="191.5" ></text>
+</g>
+<g >
+<title>ownIsValidType (23,202,429 samples, 0.16%)</title><rect x="649.8" y="485" width="1.8" height="15.0" fill="rgb(242,144,36)" rx="2" ry="2" />
+<text  x="652.76" y="495.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkSender&lt;iox::popo::ChunkSenderData&lt;8u, iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt; &gt;::tryAllocate (556,927,057 samples, 3.83%)</title><rect x="555.4" y="437" width="45.1" height="15.0" fill="rgb(218,171,7)" rx="2" ry="2" />
+<text  x="558.38" y="447.5" >iox:..</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (389,326,006 samples, 2.68%)</title><rect x="464.3" y="245" width="31.6" height="15.0" fill="rgb(236,200,13)" rx="2" ry="2" />
+<text  x="467.28" y="255.5" >el..</text>
+</g>
+<g >
+<title>ownGraphScheduleGraph (22,589,047 samples, 0.16%)</title><rect x="655.4" y="517" width="1.8" height="15.0" fill="rgb(241,20,20)" rx="2" ry="2" />
+<text  x="658.41" y="527.5" ></text>
+</g>
+<g >
+<title>irq_exit (16,719,574 samples, 0.11%)</title><rect x="970.2" y="197" width="1.3" height="15.0" fill="rgb(227,178,14)" rx="2" ry="2" />
+<text  x="973.16" y="207.5" ></text>
+</g>
+<g >
+<title>el0_sync (1,479,286,362 samples, 10.17%)</title><rect x="785.3" y="517" width="119.9" height="15.0" fill="rgb(239,36,32)" rx="2" ry="2" />
+<text  x="788.27" y="527.5" >el0_sync</text>
+</g>
+<g >
+<title>el0_sync (107,221,179 samples, 0.74%)</title><rect x="78.4" y="501" width="8.7" height="15.0" fill="rgb(244,29,2)" rx="2" ry="2" />
+<text  x="81.45" y="511.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (19,943,748 samples, 0.14%)</title><rect x="900.4" y="245" width="1.6" height="15.0" fill="rgb(214,8,3)" rx="2" ry="2" />
+<text  x="903.42" y="255.5" ></text>
+</g>
+<g >
+<title>el0_svc (355,982,052 samples, 2.45%)</title><rect x="997.5" y="437" width="28.9" height="15.0" fill="rgb(248,104,11)" rx="2" ry="2" />
+<text  x="1000.48" y="447.5" >el..</text>
+</g>
+<g >
+<title>rcu_core_si (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="213" width="1.3" height="15.0" fill="rgb(222,9,30)" rx="2" ry="2" />
+<text  x="1185.26" y="223.5" ></text>
+</g>
+<g >
+<title>__alloc_skb (159,968,104 samples, 1.10%)</title><rect x="14.3" y="53" width="13.0" height="15.0" fill="rgb(229,24,3)" rx="2" ry="2" />
+<text  x="17.29" y="63.5" ></text>
+</g>
+<g >
+<title>iox::cxx::convert::toString&lt;int&gt; (59,836,001 samples, 0.41%)</title><rect x="39.9" y="293" width="4.8" height="15.0" fill="rgb(239,115,11)" rx="2" ry="2" />
+<text  x="42.86" y="303.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::ChunkHeader::setSequenceNumber (19,427,233 samples, 0.13%)</title><rect x="416.4" y="421" width="1.6" height="15.0" fill="rgb(218,2,8)" rx="2" ry="2" />
+<text  x="419.41" y="431.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::mepoo::ShmSafeUnmanagedChunk&gt;::optional@plt (28,616,185 samples, 0.20%)</title><rect x="444.0" y="341" width="2.4" height="15.0" fill="rgb(213,59,35)" rx="2" ry="2" />
+<text  x="447.04" y="351.5" ></text>
+</g>
+<g >
+<title>iox::rp::RelativePointerData::offset@plt (27,091,337 samples, 0.19%)</title><rect x="596.9" y="421" width="2.2" height="15.0" fill="rgb(236,196,43)" rx="2" ry="2" />
+<text  x="599.88" y="431.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::find (134,383,702 samples, 0.92%)</title><rect x="27.3" y="277" width="10.9" height="15.0" fill="rgb(246,28,4)" rx="2" ry="2" />
+<text  x="30.27" y="287.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (41,629,402 samples, 0.29%)</title><rect x="1070.7" y="453" width="3.4" height="15.0" fill="rgb(253,27,42)" rx="2" ry="2" />
+<text  x="1073.68" y="463.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (585,404,642 samples, 4.02%)</title><rect x="10.0" y="453" width="47.5" height="15.0" fill="rgb(212,83,7)" rx="2" ry="2" />
+<text  x="13.00" y="463.5" >iox:..</text>
+</g>
+<g >
+<title>__fget_light (211,362,626 samples, 1.45%)</title><rect x="816.3" y="373" width="17.1" height="15.0" fill="rgb(232,115,35)" rx="2" ry="2" />
+<text  x="819.27" y="383.5" ></text>
+</g>
+<g >
+<title>std::has_facet&lt;std::ctype&lt;char&gt; &gt; (23,010,931 samples, 0.16%)</title><rect x="39.9" y="229" width="1.8" height="15.0" fill="rgb(205,107,44)" rx="2" ry="2" />
+<text  x="42.86" y="239.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (18,350,433 samples, 0.13%)</title><rect x="111.2" y="437" width="1.5" height="15.0" fill="rgb(206,154,24)" rx="2" ry="2" />
+<text  x="114.18" y="447.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (17,043,685 samples, 0.12%)</title><rect x="1182.3" y="261" width="1.3" height="15.0" fill="rgb(245,222,54)" rx="2" ry="2" />
+<text  x="1185.26" y="271.5" ></text>
+</g>
+<g >
+<title>appLogGetGlobalTimeInUsec (19,653,866 samples, 0.14%)</title><rect x="657.2" y="501" width="1.6" height="15.0" fill="rgb(208,192,5)" rx="2" ry="2" />
+<text  x="660.24" y="511.5" ></text>
+</g>
+<g >
+<title>all (14,549,493,708 samples, 100%)</title><rect x="10.0" y="613" width="1180.0" height="15.0" fill="rgb(230,118,45)" rx="2" ry="2" />
+<text  x="13.00" y="623.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (19,943,748 samples, 0.14%)</title><rect x="900.4" y="197" width="1.6" height="15.0" fill="rgb(232,6,49)" rx="2" ry="2" />
+<text  x="903.42" y="207.5" ></text>
+</g>
+<g >
+<title>read (28,629,966 samples, 0.20%)</title><rect x="1030.2" y="549" width="2.4" height="15.0" fill="rgb(205,109,47)" rx="2" ry="2" />
+<text  x="1033.23" y="559.5" ></text>
+</g>
+<g >
+<title>__fdget_pos (38,303,012 samples, 0.26%)</title><rect x="923.6" y="405" width="3.1" height="15.0" fill="rgb(231,191,29)" rx="2" ry="2" />
+<text  x="926.60" y="415.5" ></text>
+</g>
+<g >
+<title>ownGraphScheduleGraph (709,022,935 samples, 4.87%)</title><rect x="658.8" y="501" width="57.5" height="15.0" fill="rgb(217,181,38)" rx="2" ry="2" />
+<text  x="661.84" y="511.5" >ownGra..</text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (52,917,522 samples, 0.36%)</title><rect x="1069.8" y="517" width="4.3" height="15.0" fill="rgb(226,188,53)" rx="2" ry="2" />
+<text  x="1072.76" y="527.5" ></text>
+</g>
+<g >
+<title>el0_svc (389,326,006 samples, 2.68%)</title><rect x="464.3" y="277" width="31.6" height="15.0" fill="rgb(216,196,46)" rx="2" ry="2" />
+<text  x="467.28" y="287.5" >el..</text>
+</g>
+<g >
+<title>iox::concurrent::ResizeableLockFreeQueue&lt;iox::mepoo::ShmSafeUnmanagedChunk, 256ul&gt;::push (148,514,459 samples, 1.02%)</title><rect x="434.3" y="357" width="12.1" height="15.0" fill="rgb(244,39,4)" rx="2" ry="2" />
+<text  x="437.32" y="367.5" ></text>
+</g>
+<g >
+<title>iox::rp::PointerRepository&lt;unsigned long, void*, 10000ul&gt;::getBasePtr (40,745,806 samples, 0.28%)</title><rect x="580.1" y="325" width="3.3" height="15.0" fill="rgb(232,167,26)" rx="2" ry="2" />
+<text  x="583.07" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (38,953,437 samples, 0.27%)</title><rect x="400.6" y="469" width="3.1" height="15.0" fill="rgb(226,5,39)" rx="2" ry="2" />
+<text  x="403.57" y="479.5" ></text>
+</g>
+<g >
+<title>iox::posix::Semaphore::timedWait (85,365,279 samples, 0.59%)</title><rect x="49.1" y="437" width="6.9" height="15.0" fill="rgb(251,70,37)" rx="2" ry="2" />
+<text  x="52.12" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::variant&lt;0ul, iox::posix::PosixCallResult&lt;int&gt; &gt; (23,273,836 samples, 0.16%)</title><rect x="531.6" y="325" width="1.8" height="15.0" fill="rgb(237,61,35)" rx="2" ry="2" />
+<text  x="534.56" y="335.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::PosixCallDetails&lt;int&gt;::PosixCallDetails@plt (11,609,104 samples, 0.08%)</title><rect x="536.4" y="341" width="1.0" height="15.0" fill="rgb(254,40,21)" rx="2" ry="2" />
+<text  x="539.42" y="351.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (186,561,993 samples, 1.28%)</title><rect x="1130.2" y="325" width="15.2" height="15.0" fill="rgb(218,141,34)" rx="2" ry="2" />
+<text  x="1133.23" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::call_element_destructor@plt (18,707,776 samples, 0.13%)</title><rect x="429.9" y="325" width="1.5" height="15.0" fill="rgb(247,112,18)" rx="2" ry="2" />
+<text  x="432.87" y="335.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (159,968,104 samples, 1.10%)</title><rect x="14.3" y="197" width="13.0" height="15.0" fill="rgb(232,17,49)" rx="2" ry="2" />
+<text  x="17.29" y="207.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::SemaphoreWaitState, iox::posix::SemaphoreError&gt;::has_error@plt (22,153,902 samples, 0.15%)</title><rect x="57.5" y="453" width="1.8" height="15.0" fill="rgb(250,114,35)" rx="2" ry="2" />
+<text  x="60.48" y="463.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex_time32 (19,385,664 samples, 0.13%)</title><rect x="1171.3" y="357" width="1.6" height="15.0" fill="rgb(249,179,2)" rx="2" ry="2" />
+<text  x="1174.35" y="367.5" ></text>
+</g>
+<g >
+<title>kmalloc_slab (21,575,152 samples, 0.15%)</title><rect x="687.6" y="261" width="1.7" height="15.0" fill="rgb(231,53,35)" rx="2" ry="2" />
+<text  x="690.56" y="271.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (21,154,494 samples, 0.15%)</title><rect x="1163.6" y="405" width="1.7" height="15.0" fill="rgb(221,1,25)" rx="2" ry="2" />
+<text  x="1166.63" y="415.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::rp::RelativePointer&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;, 256ul&gt;::empty@plt (13,864,617 samples, 0.10%)</title><rect x="412.2" y="421" width="1.1" height="15.0" fill="rgb(238,20,9)" rx="2" ry="2" />
+<text  x="415.19" y="431.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="501" width="1.6" height="15.0" fill="rgb(214,224,27)" rx="2" ry="2" />
+<text  x="1191.35" y="511.5" ></text>
+</g>
+<g >
+<title>__kmalloc_track_caller (159,968,104 samples, 1.10%)</title><rect x="14.3" y="37" width="13.0" height="15.0" fill="rgb(215,142,39)" rx="2" ry="2" />
+<text  x="17.29" y="47.5" ></text>
+</g>
+<g >
+<title>iox::popo::ThreadSafePolicy::unlock@plt (17,162,452 samples, 0.12%)</title><rect x="506.5" y="373" width="1.4" height="15.0" fill="rgb(233,21,6)" rx="2" ry="2" />
+<text  x="509.53" y="383.5" ></text>
+</g>
+<g >
+<title>el0_sync (465,365,164 samples, 3.20%)</title><rect x="676.4" y="421" width="37.7" height="15.0" fill="rgb(207,105,29)" rx="2" ry="2" />
+<text  x="679.35" y="431.5" >el0..</text>
+</g>
+<g >
+<title>__arm64_sys_futex_time32 (19,733,852 samples, 0.14%)</title><rect x="760.0" y="341" width="1.6" height="15.0" fill="rgb(253,87,20)" rx="2" ry="2" />
+<text  x="762.99" y="351.5" ></text>
+</g>
+<g >
+<title>fpsimd_load_state (81,263,301 samples, 0.56%)</title><rect x="906.2" y="469" width="6.6" height="15.0" fill="rgb(226,125,46)" rx="2" ry="2" />
+<text  x="909.21" y="479.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (24,603,898 samples, 0.17%)</title><rect x="244.5" y="437" width="2.0" height="15.0" fill="rgb(211,15,19)" rx="2" ry="2" />
+<text  x="247.54" y="447.5" ></text>
+</g>
+<g >
+<title>el0_irq_naked (24,603,898 samples, 0.17%)</title><rect x="244.5" y="469" width="2.0" height="15.0" fill="rgb(241,7,15)" rx="2" ry="2" />
+<text  x="247.54" y="479.5" ></text>
+</g>
+<g >
+<title>tivxEventWait (216,050,472 samples, 1.48%)</title><rect x="748.9" y="501" width="17.5" height="15.0" fill="rgb(208,211,13)" rx="2" ry="2" />
+<text  x="751.91" y="511.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (16,933,296 samples, 0.12%)</title><rect x="49.1" y="197" width="1.4" height="15.0" fill="rgb(225,205,22)" rx="2" ry="2" />
+<text  x="52.12" y="207.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkDistributor&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt;::deliverToAllStoredQueues@plt (15,580,530 samples, 0.11%)</title><rect x="410.9" y="437" width="1.3" height="15.0" fill="rgb(242,86,35)" rx="2" ry="2" />
+<text  x="413.93" y="447.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (465,365,164 samples, 3.20%)</title><rect x="676.4" y="405" width="37.7" height="15.0" fill="rgb(214,36,23)" rx="2" ry="2" />
+<text  x="679.35" y="415.5" >el0..</text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (159,671,538 samples, 1.10%)</title><rect x="751.7" y="405" width="13.0" height="15.0" fill="rgb(208,157,12)" rx="2" ry="2" />
+<text  x="754.75" y="415.5" ></text>
+</g>
+<g >
+<title>virtqueue_get_buf_ctx (30,160,631 samples, 0.21%)</title><rect x="691.7" y="181" width="2.5" height="15.0" fill="rgb(212,65,9)" rx="2" ry="2" />
+<text  x="694.75" y="191.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (30,233,330 samples, 0.21%)</title><rect x="527.9" y="277" width="2.4" height="15.0" fill="rgb(232,146,40)" rx="2" ry="2" />
+<text  x="530.87" y="287.5" ></text>
+</g>
+<g >
+<title>ownIsSupportedFourcc (224,017,215 samples, 1.54%)</title><rect x="94.5" y="485" width="18.2" height="15.0" fill="rgb(250,59,9)" rx="2" ry="2" />
+<text  x="97.50" y="495.5" ></text>
+</g>
+<g >
+<title>iox::popo::BasePort::getMembers@plt (16,191,417 samples, 0.11%)</title><rect x="550.6" y="437" width="1.3" height="15.0" fill="rgb(223,130,3)" rx="2" ry="2" />
+<text  x="553.55" y="447.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (5,149,154,647 samples, 35.39%)</title><rect x="770.7" y="581" width="417.6" height="15.0" fill="rgb(240,70,51)" rx="2" ry="2" />
+<text  x="773.74" y="591.5" >[libc-2.30.so]</text>
+</g>
+<g >
+<title>el0_sync (48,541,480 samples, 0.33%)</title><rect x="49.1" y="357" width="4.0" height="15.0" fill="rgb(213,167,51)" rx="2" ry="2" />
+<text  x="52.12" y="367.5" ></text>
+</g>
+<g >
+<title>__schedule (16,615,910 samples, 0.11%)</title><rect x="494.5" y="117" width="1.4" height="15.0" fill="rgb(224,39,6)" rx="2" ry="2" />
+<text  x="497.50" y="127.5" ></text>
+</g>
+<g >
+<title>skb_release_data (427,573,501 samples, 2.94%)</title><rect x="941.7" y="325" width="34.7" height="15.0" fill="rgb(233,22,8)" rx="2" ry="2" />
+<text  x="944.68" y="335.5" >sk..</text>
+</g>
+<g >
+<title>do_futex (302,844,621 samples, 2.08%)</title><rect x="1001.8" y="373" width="24.6" height="15.0" fill="rgb(243,25,39)" rx="2" ry="2" />
+<text  x="1004.79" y="383.5" >d..</text>
+</g>
+<g >
+<title>do_el0_svc (855,218,418 samples, 5.88%)</title><rect x="914.8" y="469" width="69.4" height="15.0" fill="rgb(217,221,13)" rx="2" ry="2" />
+<text  x="917.85" y="479.5" >do_el0_..</text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::rp::RelativePointer&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;, 256ul&gt;::pop_back@plt (60,560,206 samples, 0.42%)</title><rect x="420.9" y="389" width="5.0" height="15.0" fill="rgb(235,49,45)" rx="2" ry="2" />
+<text  x="423.95" y="399.5" ></text>
+</g>
+<g >
+<title>loggerImp (155,797,342 samples, 1.07%)</title><rect x="60.6" y="533" width="12.6" height="15.0" fill="rgb(224,62,24)" rx="2" ry="2" />
+<text  x="63.56" y="543.5" ></text>
+</g>
+<g >
+<title>schedule (132,152,546 samples, 0.91%)</title><rect x="1172.9" y="341" width="10.7" height="15.0" fill="rgb(211,159,27)" rx="2" ry="2" />
+<text  x="1175.92" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::~expected (17,033,139 samples, 0.12%)</title><rect x="557.1" y="421" width="1.4" height="15.0" fill="rgb(208,11,50)" rx="2" ry="2" />
+<text  x="560.11" y="431.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (41,629,402 samples, 0.29%)</title><rect x="1070.7" y="485" width="3.4" height="15.0" fill="rgb(242,98,12)" rx="2" ry="2" />
+<text  x="1073.68" y="495.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (48,614,877 samples, 0.33%)</title><rect x="49.1" y="389" width="4.0" height="15.0" fill="rgb(207,105,23)" rx="2" ry="2" />
+<text  x="52.12" y="399.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (16,719,574 samples, 0.11%)</title><rect x="970.2" y="229" width="1.3" height="15.0" fill="rgb(208,211,26)" rx="2" ry="2" />
+<text  x="973.16" y="239.5" ></text>
+</g>
+<g >
+<title>el0_svc (48,541,480 samples, 0.33%)</title><rect x="49.1" y="325" width="4.0" height="15.0" fill="rgb(231,131,34)" rx="2" ry="2" />
+<text  x="52.12" y="335.5" ></text>
+</g>
+<g >
+<title>__select (1,611,535,931 samples, 11.08%)</title><rect x="782.1" y="533" width="130.7" height="15.0" fill="rgb(212,45,31)" rx="2" ry="2" />
+<text  x="785.10" y="543.5" >__select</text>
+</g>
+<g >
+<title>std::atomic&lt;iox::concurrent::CyclicIndex&lt;256ul, unsigned long&gt; &gt;::load (19,409,785 samples, 0.13%)</title><rect x="442.5" y="309" width="1.5" height="15.0" fill="rgb(245,150,41)" rx="2" ry="2" />
+<text  x="445.47" y="319.5" ></text>
+</g>
+<g >
+<title>tivxGraphParameterEnqueueReadyRef (756,440,001 samples, 5.20%)</title><rect x="657.2" y="517" width="61.4" height="15.0" fill="rgb(225,152,32)" rx="2" ry="2" />
+<text  x="660.24" y="527.5" >tivxGr..</text>
+</g>
+<g >
+<title>sem_post@plt (62,023,446 samples, 0.43%)</title><rect x="495.9" y="325" width="5.0" height="15.0" fill="rgb(244,109,52)" rx="2" ry="2" />
+<text  x="498.85" y="335.5" ></text>
+</g>
+<g >
+<title>tivx_obj_desc_memcpy (1,612,097,575 samples, 11.08%)</title><rect x="115.8" y="485" width="130.7" height="15.0" fill="rgb(215,6,31)" rx="2" ry="2" />
+<text  x="118.79" y="495.5" >tivx_obj_desc_me..</text>
+</g>
+<g >
+<title>iox::units::Duration::Duration@plt (17,361,261 samples, 0.12%)</title><rect x="53.1" y="421" width="1.4" height="15.0" fill="rgb(209,199,39)" rx="2" ry="2" />
+<text  x="56.06" y="431.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::call_element_destructor (22,324,549 samples, 0.15%)</title><rect x="509.8" y="293" width="1.8" height="15.0" fill="rgb(247,71,22)" rx="2" ry="2" />
+<text  x="512.84" y="303.5" ></text>
+</g>
+<g >
+<title>tivxObjDescQueueDequeue (73,925,718 samples, 0.51%)</title><rect x="738.7" y="485" width="6.0" height="15.0" fill="rgb(254,0,24)" rx="2" ry="2" />
+<text  x="741.70" y="495.5" ></text>
+</g>
+<g >
+<title>el0_svc (465,365,164 samples, 3.20%)</title><rect x="676.4" y="389" width="37.7" height="15.0" fill="rgb(244,119,14)" rx="2" ry="2" />
+<text  x="679.35" y="399.5" >el0..</text>
+</g>
+<g >
+<title>el0_irq_naked (30,233,330 samples, 0.21%)</title><rect x="527.9" y="341" width="2.4" height="15.0" fill="rgb(212,33,5)" rx="2" ry="2" />
+<text  x="530.87" y="351.5" ></text>
+</g>
+<g >
+<title>std::ios_base::~ios_base@plt (20,447,766 samples, 0.14%)</title><rect x="44.7" y="293" width="1.7" height="15.0" fill="rgb(251,103,43)" rx="2" ry="2" />
+<text  x="47.71" y="303.5" ></text>
+</g>
+<g >
+<title>irq_exit (19,392,769 samples, 0.13%)</title><rect x="1143.8" y="261" width="1.6" height="15.0" fill="rgb(246,12,5)" rx="2" ry="2" />
+<text  x="1146.79" y="271.5" ></text>
+</g>
+<g >
+<title>_start (343,622,194 samples, 2.36%)</title><rect x="59.3" y="581" width="27.8" height="15.0" fill="rgb(205,117,19)" rx="2" ry="2" />
+<text  x="62.27" y="591.5" >_..</text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::rp::PointerRepository&lt;unsigned long, void*, 10000ul&gt;::Info, 10000ul&gt;::operator[] (26,909,698 samples, 0.18%)</title><rect x="581.2" y="309" width="2.2" height="15.0" fill="rgb(247,152,1)" rx="2" ry="2" />
+<text  x="584.19" y="319.5" ></text>
+</g>
+<g >
+<title>el0_svc (41,629,402 samples, 0.29%)</title><rect x="1070.7" y="469" width="3.4" height="15.0" fill="rgb(207,210,46)" rx="2" ry="2" />
+<text  x="1073.68" y="479.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;::push@plt (21,542,971 samples, 0.15%)</title><rect x="519.0" y="405" width="1.7" height="15.0" fill="rgb(234,126,50)" rx="2" ry="2" />
+<text  x="521.99" y="415.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (26,912,374 samples, 0.18%)</title><rect x="1156.0" y="501" width="2.2" height="15.0" fill="rgb(235,27,28)" rx="2" ry="2" />
+<text  x="1159.02" y="511.5" ></text>
+</g>
+<g >
+<title>hrtimer_nanosleep (107,221,179 samples, 0.74%)</title><rect x="78.4" y="405" width="8.7" height="15.0" fill="rgb(251,37,47)" rx="2" ry="2" />
+<text  x="81.45" y="415.5" ></text>
+</g>
+<g >
+<title>iox::popo::BasePort::getUniqueID (25,918,243 samples, 0.18%)</title><rect x="551.9" y="437" width="2.1" height="15.0" fill="rgb(215,35,36)" rx="2" ry="2" />
+<text  x="554.86" y="447.5" ></text>
+</g>
+<g >
+<title>__sys_sendto (159,968,104 samples, 1.10%)</title><rect x="14.3" y="117" width="13.0" height="15.0" fill="rgb(224,21,47)" rx="2" ry="2" />
+<text  x="17.29" y="127.5" ></text>
+</g>
+<g >
+<title>SvCamMainTask (343,622,194 samples, 2.36%)</title><rect x="59.3" y="597" width="27.8" height="15.0" fill="rgb(235,94,2)" rx="2" ry="2" />
+<text  x="62.27" y="607.5" >S..</text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;unsigned long&gt;::value@plt (20,904,252 samples, 0.14%)</title><rect x="454.7" y="373" width="1.7" height="15.0" fill="rgb(250,228,17)" rx="2" ry="2" />
+<text  x="457.69" y="383.5" ></text>
+</g>
+<g >
+<title>iox::rp::BaseRelativePointer::getOffset@plt (21,533,462 samples, 0.15%)</title><rect x="593.7" y="405" width="1.8" height="15.0" fill="rgb(217,23,20)" rx="2" ry="2" />
+<text  x="596.73" y="415.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (11,473,307 samples, 0.08%)</title><rect x="996.6" y="453" width="0.9" height="15.0" fill="rgb(245,182,39)" rx="2" ry="2" />
+<text  x="999.55" y="463.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::mepoo::ChunkSettings, iox::mepoo::ChunkSettings::Error&gt;::variant&lt;0ul, iox::mepoo::ChunkSettings&gt; (48,275,697 samples, 0.33%)</title><rect x="562.9" y="389" width="3.9" height="15.0" fill="rgb(247,161,34)" rx="2" ry="2" />
+<text  x="565.87" y="399.5" ></text>
+</g>
+<g >
+<title>preempt_schedule_irq (20,390,570 samples, 0.14%)</title><rect x="703.7" y="101" width="1.6" height="15.0" fill="rgb(214,214,30)" rx="2" ry="2" />
+<text  x="706.65" y="111.5" ></text>
+</g>
+<g >
+<title>rw_verify_area (81,877,633 samples, 0.56%)</title><rect x="977.6" y="389" width="6.6" height="15.0" fill="rgb(225,198,39)" rx="2" ry="2" />
+<text  x="980.57" y="399.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;int, sem_t*&gt;::operator (451,349,452 samples, 3.10%)</title><rect x="464.3" y="341" width="36.6" height="15.0" fill="rgb(222,164,52)" rx="2" ry="2" />
+<text  x="467.28" y="351.5" >iox..</text>
+</g>
+<g >
+<title>sysfs_slab_release (11,473,307 samples, 0.08%)</title><rect x="974.0" y="277" width="1.0" height="15.0" fill="rgb(221,165,41)" rx="2" ry="2" />
+<text  x="977.05" y="287.5" ></text>
+</g>
+<g >
+<title>tivxIpcSendMsg (569,954,607 samples, 3.92%)</title><rect x="670.1" y="469" width="46.2" height="15.0" fill="rgb(247,5,11)" rx="2" ry="2" />
+<text  x="673.11" y="479.5" >tivx..</text>
+</g>
+<g >
+<title>gic_handle_irq (21,154,494 samples, 0.15%)</title><rect x="1163.6" y="453" width="1.7" height="15.0" fill="rgb(208,60,2)" rx="2" ry="2" />
+<text  x="1166.63" y="463.5" ></text>
+</g>
+<g >
+<title>el0_sync (855,218,418 samples, 5.88%)</title><rect x="914.8" y="517" width="69.4" height="15.0" fill="rgb(252,133,51)" rx="2" ry="2" />
+<text  x="917.85" y="527.5" >el0_sync</text>
+</g>
+<g >
+<title>vxGetObjectArrayItem (152,355,088 samples, 1.05%)</title><rect x="265.5" y="485" width="12.4" height="15.0" fill="rgb(246,164,13)" rx="2" ry="2" />
+<text  x="268.54" y="495.5" ></text>
+</g>
+<g >
+<title>vfs_read (708,970,849 samples, 4.87%)</title><rect x="926.7" y="405" width="57.5" height="15.0" fill="rgb(253,190,41)" rx="2" ry="2" />
+<text  x="929.71" y="415.5" >vfs_read</text>
+</g>
+<g >
+<title>tivxObjDescQueueEnqueue (14,260,844 samples, 0.10%)</title><rect x="717.4" y="485" width="1.2" height="15.0" fill="rgb(207,34,15)" rx="2" ry="2" />
+<text  x="720.43" y="495.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_pselect6 (1,445,164,091 samples, 9.93%)</title><rect x="788.0" y="437" width="117.2" height="15.0" fill="rgb(222,225,48)" rx="2" ry="2" />
+<text  x="791.04" y="447.5" >__arm64_sys_ps..</text>
+</g>
+<g >
+<title>work_pending (12,977,106 samples, 0.09%)</title><rect x="1187.3" y="485" width="1.0" height="15.0" fill="rgb(216,101,16)" rx="2" ry="2" />
+<text  x="1190.30" y="495.5" ></text>
+</g>
+<g >
+<title>pthread_cond_wait (18,333,226 samples, 0.13%)</title><rect x="727.5" y="501" width="1.5" height="15.0" fill="rgb(239,60,5)" rx="2" ry="2" />
+<text  x="730.49" y="511.5" ></text>
+</g>
+<g >
+<title>tivxLogRtTraceGraphExeEnd (18,912,472 samples, 0.13%)</title><rect x="1106.4" y="501" width="1.6" height="15.0" fill="rgb(251,75,53)" rx="2" ry="2" />
+<text  x="1109.44" y="511.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::posix::PosixCallResult&lt;int&gt; &gt;@plt (23,655,851 samples, 0.16%)</title><rect x="533.4" y="325" width="2.0" height="15.0" fill="rgb(238,20,10)" rx="2" ry="2" />
+<text  x="536.44" y="335.5" ></text>
+</g>
+<g >
+<title>el1_irq (20,390,570 samples, 0.14%)</title><rect x="703.7" y="133" width="1.6" height="15.0" fill="rgb(243,209,6)" rx="2" ry="2" />
+<text  x="706.65" y="143.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;int, sem_t*, timespec const*&gt;::operator (48,614,877 samples, 0.33%)</title><rect x="49.1" y="421" width="4.0" height="15.0" fill="rgb(235,13,39)" rx="2" ry="2" />
+<text  x="52.12" y="431.5" ></text>
+</g>
+<g >
+<title>read (880,399,832 samples, 6.05%)</title><rect x="912.8" y="533" width="71.4" height="15.0" fill="rgb(232,58,17)" rx="2" ry="2" />
+<text  x="915.80" y="543.5" >read</text>
+</g>
+<g >
+<title>operator new@plt (19,260,366 samples, 0.13%)</title><rect x="623.6" y="485" width="1.5" height="15.0" fill="rgb(243,24,42)" rx="2" ry="2" />
+<text  x="626.59" y="495.5" ></text>
+</g>
+<g >
+<title>sem_post (13,502,356 samples, 0.09%)</title><rect x="716.3" y="485" width="1.1" height="15.0" fill="rgb(209,122,16)" rx="2" ry="2" />
+<text  x="719.34" y="495.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~expected (22,324,549 samples, 0.15%)</title><rect x="509.8" y="325" width="1.8" height="15.0" fill="rgb(227,55,1)" rx="2" ry="2" />
+<text  x="512.84" y="335.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkDistributor&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt;::addToHistoryWithoutDelivery@plt (17,653,806 samples, 0.12%)</title><rect x="419.5" y="421" width="1.4" height="15.0" fill="rgb(229,207,46)" rx="2" ry="2" />
+<text  x="422.52" y="431.5" ></text>
+</g>
+<g >
+<title>mv_svcamera (5,149,154,647 samples, 35.39%)</title><rect x="770.7" y="597" width="417.6" height="15.0" fill="rgb(232,50,5)" rx="2" ry="2" />
+<text  x="773.74" y="607.5" >mv_svcamera</text>
+</g>
+<g >
+<title>core_sys_select (1,279,047,614 samples, 8.79%)</title><rect x="799.5" y="421" width="103.8" height="15.0" fill="rgb(235,218,27)" rx="2" ry="2" />
+<text  x="802.53" y="431.5" >core_sys_sel..</text>
+</g>
+<g >
+<title>__arm64_sys_futex (267,958,575 samples, 1.84%)</title><rect x="1123.6" y="389" width="21.8" height="15.0" fill="rgb(253,142,33)" rx="2" ry="2" />
+<text  x="1126.63" y="399.5" >_..</text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (35,512,373 samples, 0.24%)</title><rect x="843.2" y="373" width="2.9" height="15.0" fill="rgb(230,73,35)" rx="2" ry="2" />
+<text  x="846.25" y="383.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (20,309,886 samples, 0.14%)</title><rect x="1188.4" y="549" width="1.6" height="15.0" fill="rgb(216,177,47)" rx="2" ry="2" />
+<text  x="1191.35" y="559.5" ></text>
+</g>
+<g >
+<title>iox::posix::mutex::lock (22,324,549 samples, 0.15%)</title><rect x="509.8" y="341" width="1.8" height="15.0" fill="rgb(235,123,24)" rx="2" ry="2" />
+<text  x="512.84" y="351.5" ></text>
+</g>
+<g >
+<title>ownUpdateNodePerf (315,723,606 samples, 2.17%)</title><rect x="1080.8" y="501" width="25.6" height="15.0" fill="rgb(248,87,41)" rx="2" ry="2" />
+<text  x="1083.84" y="511.5" >o..</text>
+</g>
+<g >
+<title>rw_verify_area (20,811,748 samples, 0.14%)</title><rect x="712.4" y="293" width="1.7" height="15.0" fill="rgb(244,172,33)" rx="2" ry="2" />
+<text  x="715.41" y="303.5" ></text>
+</g>
+<g >
+<title>iox::mepoo::SharedChunk::incrementReferenceCounter (27,666,691 samples, 0.19%)</title><rect x="425.9" y="389" width="2.2" height="15.0" fill="rgb(236,44,13)" rx="2" ry="2" />
+<text  x="428.86" y="399.5" ></text>
+</g>
+<g >
+<title>tivxMutexLock (70,681,121 samples, 0.49%)</title><rect x="382.7" y="469" width="5.7" height="15.0" fill="rgb(228,114,11)" rx="2" ry="2" />
+<text  x="385.68" y="479.5" ></text>
+</g>
+<g >
+<title>rcu_report_qs_rnp (30,233,330 samples, 0.21%)</title><rect x="527.9" y="229" width="2.4" height="15.0" fill="rgb(207,141,48)" rx="2" ry="2" />
+<text  x="530.87" y="239.5" ></text>
+</g>
+<g >
+<title>iox::popo::UniquePortId::UniquePortId (47,378,593 samples, 0.33%)</title><rect x="600.5" y="437" width="3.9" height="15.0" fill="rgb(228,184,40)" rx="2" ry="2" />
+<text  x="603.55" y="447.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (389,326,006 samples, 2.68%)</title><rect x="464.3" y="229" width="31.6" height="15.0" fill="rgb(238,94,52)" rx="2" ry="2" />
+<text  x="467.28" y="239.5" >__..</text>
+</g>
+<g >
+<title>do_el0_svc (159,671,538 samples, 1.10%)</title><rect x="751.7" y="421" width="13.0" height="15.0" fill="rgb(233,191,10)" rx="2" ry="2" />
+<text  x="754.75" y="431.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (58,795,249 samples, 0.40%)</title><rect x="721.0" y="469" width="4.8" height="15.0" fill="rgb(240,220,32)" rx="2" ry="2" />
+<text  x="724.02" y="479.5" ></text>
+</g>
+<g >
+<title>futex_wait_setup (20,670,582 samples, 0.14%)</title><rect x="1183.6" y="357" width="1.7" height="15.0" fill="rgb(254,209,35)" rx="2" ry="2" />
+<text  x="1186.64" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::emplace_at_index&lt;0ul, iox::posix::PosixCallResult&lt;int&gt; &gt; (23,273,836 samples, 0.16%)</title><rect x="531.6" y="309" width="1.8" height="15.0" fill="rgb(215,119,13)" rx="2" ry="2" />
+<text  x="534.56" y="319.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (22,816,784 samples, 0.16%)</title><rect x="748.9" y="485" width="1.9" height="15.0" fill="rgb(247,51,20)" rx="2" ry="2" />
+<text  x="751.91" y="495.5" ></text>
+</g>
+<g >
+<title>rcu_core (19,943,748 samples, 0.14%)</title><rect x="900.4" y="213" width="1.6" height="15.0" fill="rgb(226,62,49)" rx="2" ry="2" />
+<text  x="903.42" y="223.5" ></text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::load (28,107,421 samples, 0.19%)</title><rect x="542.8" y="437" width="2.3" height="15.0" fill="rgb(226,12,21)" rx="2" ry="2" />
+<text  x="545.81" y="447.5" ></text>
+</g>
+<g >
+<title>_IO_default_xsputn (16,785,675 samples, 0.12%)</title><rect x="642.6" y="437" width="1.4" height="15.0" fill="rgb(220,120,49)" rx="2" ry="2" />
+<text  x="645.63" y="447.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;::push (1,032,629,746 samples, 7.10%)</title><rect x="433.1" y="389" width="83.7" height="15.0" fill="rgb(214,161,2)" rx="2" ry="2" />
+<text  x="436.07" y="399.5" >iox::popo..</text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::rp::RelativePointer&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;, 256ul&gt;::~vector@plt (24,734,293 samples, 0.17%)</title><rect x="414.4" y="421" width="2.0" height="15.0" fill="rgb(220,157,51)" rx="2" ry="2" />
+<text  x="417.40" y="431.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (298,552,457 samples, 2.05%)</title><rect x="1121.1" y="405" width="24.3" height="15.0" fill="rgb(243,40,32)" rx="2" ry="2" />
+<text  x="1124.15" y="415.5" >e..</text>
+</g>
+<g >
+<title>rcu_gp_kthread_wake (30,233,330 samples, 0.21%)</title><rect x="527.9" y="197" width="2.4" height="15.0" fill="rgb(240,209,27)" rx="2" ry="2" />
+<text  x="530.87" y="207.5" ></text>
+</g>
+<g >
+<title>add_wait_queue (10,913,482 samples, 0.08%)</title><rect x="864.8" y="373" width="0.9" height="15.0" fill="rgb(247,148,3)" rx="2" ry="2" />
+<text  x="867.83" y="383.5" ></text>
+</g>
+<g >
+<title>do_futex (270,684,201 samples, 1.86%)</title><rect x="1165.3" y="389" width="22.0" height="15.0" fill="rgb(232,74,40)" rx="2" ry="2" />
+<text  x="1168.34" y="399.5" >d..</text>
+</g>
+<g >
+<title>futex_wait (114,825,926 samples, 0.79%)</title><rect x="755.4" y="357" width="9.3" height="15.0" fill="rgb(246,219,31)" rx="2" ry="2" />
+<text  x="758.38" y="367.5" ></text>
+</g>
+<g >
+<title>unix_dgram_sendmsg (159,968,104 samples, 1.10%)</title><rect x="14.3" y="101" width="13.0" height="15.0" fill="rgb(218,139,36)" rx="2" ry="2" />
+<text  x="17.29" y="111.5" ></text>
+</g>
+<g >
+<title>tivxObjDescIsValidType (37,488,324 samples, 0.26%)</title><rect x="1044.1" y="533" width="3.0" height="15.0" fill="rgb(227,165,2)" rx="2" ry="2" />
+<text  x="1047.07" y="543.5" ></text>
+</g>
+<g >
+<title>ownIsSupportedFourcc (39,900,808 samples, 0.27%)</title><rect x="355.2" y="469" width="3.3" height="15.0" fill="rgb(239,174,20)" rx="2" ry="2" />
+<text  x="358.23" y="479.5" ></text>
+</g>
+<g >
+<title>appMemGetVirt2PhyBufPtr (42,641,118 samples, 0.29%)</title><rect x="626.7" y="501" width="3.4" height="15.0" fill="rgb(208,23,23)" rx="2" ry="2" />
+<text  x="629.66" y="511.5" ></text>
+</g>
+<g >
+<title>eventfd_poll (9,720,792 samples, 0.07%)</title><rect x="836.8" y="389" width="0.7" height="15.0" fill="rgb(253,126,34)" rx="2" ry="2" />
+<text  x="839.75" y="399.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::PosixCallDetails&lt;int&gt;::PosixCallDetails (13,014,036 samples, 0.09%)</title><rect x="535.4" y="341" width="1.0" height="15.0" fill="rgb(219,36,41)" rx="2" ry="2" />
+<text  x="538.36" y="351.5" ></text>
+</g>
+<g >
+<title>tivxLogRtTraceGraphExeStart (21,877,382 samples, 0.15%)</title><rect x="668.3" y="485" width="1.8" height="15.0" fill="rgb(253,215,43)" rx="2" ry="2" />
+<text  x="671.34" y="495.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_stringstream&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::basic_stringstream (43,458,697 samples, 0.30%)</title><rect x="39.9" y="277" width="3.5" height="15.0" fill="rgb(209,18,24)" rx="2" ry="2" />
+<text  x="42.86" y="287.5" ></text>
+</g>
+<g >
+<title>tivxLogRtTraceTargetExeStart (107,917,953 samples, 0.74%)</title><rect x="1147.3" y="517" width="8.7" height="15.0" fill="rgb(237,30,42)" rx="2" ry="2" />
+<text  x="1150.27" y="527.5" ></text>
+</g>
+<g >
+<title>iox::posix::Semaphore::isNamedSemaphore (17,908,218 samples, 0.12%)</title><rect x="503.0" y="341" width="1.4" height="15.0" fill="rgb(215,107,27)" rx="2" ry="2" />
+<text  x="505.98" y="351.5" ></text>
+</g>
+<g >
+<title>__fdget (252,532,545 samples, 1.74%)</title><rect x="816.3" y="389" width="20.5" height="15.0" fill="rgb(223,34,31)" rx="2" ry="2" />
+<text  x="819.27" y="399.5" ></text>
+</g>
+<g >
+<title>std::_Sp_counted_base&lt; (17,737,417 samples, 0.12%)</title><rect x="616.9" y="469" width="1.5" height="15.0" fill="rgb(220,6,33)" rx="2" ry="2" />
+<text  x="619.93" y="479.5" ></text>
+</g>
+<g >
+<title>work_pending (21,766,177 samples, 0.15%)</title><rect x="428.1" y="389" width="1.8" height="15.0" fill="rgb(242,65,8)" rx="2" ry="2" />
+<text  x="431.11" y="399.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;int&gt;::PosixCallEvaluator@plt (15,219,430 samples, 0.10%)</title><rect x="530.3" y="357" width="1.3" height="15.0" fill="rgb(235,133,3)" rx="2" ry="2" />
+<text  x="533.32" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::rp::RelativePointer&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;, 256ul&gt;::~vector (60,560,206 samples, 0.42%)</title><rect x="420.9" y="405" width="5.0" height="15.0" fill="rgb(212,196,6)" rx="2" ry="2" />
+<text  x="423.95" y="415.5" ></text>
+</g>
+<g >
+<title>__kmalloc (20,352,452 samples, 0.14%)</title><rect x="677.5" y="261" width="1.6" height="15.0" fill="rgb(230,201,25)" rx="2" ry="2" />
+<text  x="680.47" y="271.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (607,558,544 samples, 4.18%)</title><rect x="10.0" y="501" width="49.3" height="15.0" fill="rgb(216,65,7)" rx="2" ry="2" />
+<text  x="13.00" y="511.5" >std:..</text>
+</g>
+<g >
+<title>vxGraphParameterDequeueDoneRef (611,955,230 samples, 4.21%)</title><rect x="718.6" y="517" width="49.6" height="15.0" fill="rgb(210,91,30)" rx="2" ry="2" />
+<text  x="721.59" y="527.5" >vxGra..</text>
+</g>
+<g >
+<title>do_nanosleep (107,221,179 samples, 0.74%)</title><rect x="78.4" y="389" width="8.7" height="15.0" fill="rgb(233,45,8)" rx="2" ry="2" />
+<text  x="81.45" y="399.5" ></text>
+</g>
+<g >
+<title>strncmp@plt (14,601,605 samples, 0.10%)</title><rect x="379.8" y="469" width="1.2" height="15.0" fill="rgb(248,14,52)" rx="2" ry="2" />
+<text  x="382.78" y="479.5" ></text>
+</g>
+<g >
+<title>el0_irq_naked (11,473,307 samples, 0.08%)</title><rect x="996.6" y="485" width="0.9" height="15.0" fill="rgb(229,211,32)" rx="2" ry="2" />
+<text  x="999.55" y="495.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (58,795,249 samples, 0.40%)</title><rect x="721.0" y="421" width="4.8" height="15.0" fill="rgb(250,62,10)" rx="2" ry="2" />
+<text  x="724.02" y="431.5" ></text>
+</g>
+<g >
+<title>appLogGetGlobalTimeInUsec (17,699,700 samples, 0.12%)</title><rect x="1074.1" y="517" width="1.4" height="15.0" fill="rgb(205,4,27)" rx="2" ry="2" />
+<text  x="1077.05" y="527.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (58,795,249 samples, 0.40%)</title><rect x="721.0" y="437" width="4.8" height="15.0" fill="rgb(227,171,40)" rx="2" ry="2" />
+<text  x="724.02" y="447.5" ></text>
+</g>
+<g >
+<title>schedule (21,766,177 samples, 0.15%)</title><rect x="428.1" y="357" width="1.8" height="15.0" fill="rgb(239,165,22)" rx="2" ry="2" />
+<text  x="431.11" y="367.5" ></text>
+</g>
+<g >
+<title>operator new (41,243,734 samples, 0.28%)</title><rect x="620.2" y="485" width="3.4" height="15.0" fill="rgb(238,155,21)" rx="2" ry="2" />
+<text  x="623.24" y="495.5" ></text>
+</g>
+</g>
+</svg>

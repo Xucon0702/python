@@ -1,0 +1,9 @@
+{
+	"functional_group":{
+		"motovis":["./mv_decision","./mv_svfusion","./mv_plan"],
+		"mv_decision":["./mv_decision"],
+		"mv_svfusion":["./mv_svfusion"],
+		"mv_plan":["./mv_plan"],
+        "rec":["./rec -p ../data/bag"]
+	}
+}

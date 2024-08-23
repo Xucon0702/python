@@ -1,0 +1,2195 @@
+APP: Init ... !!!
+MEM: Init ... !!!
+MEM: Initialized DMA HEAP (fd=4) !!!
+MEM: Init ... Done !!!
+IPC: Init ... !!!
+IPC: Init ... Done !!!
+REMOTE_SERVICE: Init ... !!!
+REMOTE_SERVICE: Init ... Done !!!
+   848.852597 s: GTC Frequency = 200 MHz
+APP: Init ... Done !!!
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.71 % ( HWI =   5.61 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3482 MB/s, PEAK =  12595 MB/s
+DDR: WRITE BW: AVG =   2605 MB/s, PEAK =   7644 MB/s
+DDR: TOTAL BW: AVG =   6087 MB/s, PEAK =  20239 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.56 % ( HWI =   5.56 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  18. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3534 MB/s, PEAK =  34811 MB/s
+DDR: WRITE BW: AVG =   2621 MB/s, PEAK =  23713 MB/s
+DDR: TOTAL BW: AVG =   6155 MB/s, PEAK =  58524 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.81 % ( HWI =   5.56 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3525 MB/s, PEAK =   9850 MB/s
+DDR: WRITE BW: AVG =   2618 MB/s, PEAK =  12489 MB/s
+DDR: TOTAL BW: AVG =   6143 MB/s, PEAK =  22339 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.81 % ( HWI =   5.31 %, SWI =   1.51 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3530 MB/s, PEAK =  17088 MB/s
+DDR: WRITE BW: AVG =   2614 MB/s, PEAK =  21223 MB/s
+DDR: TOTAL BW: AVG =   6144 MB/s, PEAK =  38311 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.14 % ( HWI =   5.62 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3522 MB/s, PEAK =  25359 MB/s
+DDR: WRITE BW: AVG =   2611 MB/s, PEAK =  15254 MB/s
+DDR: TOTAL BW: AVG =   6133 MB/s, PEAK =  40613 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  83.29 % ( HWI =   5.39 %, SWI =   1.28 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3523 MB/s, PEAK =  14544 MB/s
+DDR: WRITE BW: AVG =   2618 MB/s, PEAK =   8554 MB/s
+DDR: TOTAL BW: AVG =   6141 MB/s, PEAK =  23098 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.92 % ( HWI =   5.52 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3524 MB/s, PEAK =   6946 MB/s
+DDR: WRITE BW: AVG =   2619 MB/s, PEAK =   9455 MB/s
+DDR: TOTAL BW: AVG =   6143 MB/s, PEAK =  16401 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.11 % ( HWI =   5.41 %, SWI =   1.28 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3548 MB/s, PEAK =  15776 MB/s
+DDR: WRITE BW: AVG =   2620 MB/s, PEAK =  12962 MB/s
+DDR: TOTAL BW: AVG =   6168 MB/s, PEAK =  28738 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  90.12 % ( HWI =   5.56 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3583 MB/s, PEAK =  13998 MB/s
+DDR: WRITE BW: AVG =   2629 MB/s, PEAK =   5842 MB/s
+DDR: TOTAL BW: AVG =   6212 MB/s, PEAK =  19840 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  90.12 % ( HWI =   5.82 %, SWI =   1. 1 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3577 MB/s, PEAK =  15416 MB/s
+DDR: WRITE BW: AVG =   2621 MB/s, PEAK =   5986 MB/s
+DDR: TOTAL BW: AVG =   6198 MB/s, PEAK =  21402 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  88.80 % ( HWI =   5.47 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3577 MB/s, PEAK =  64204 MB/s
+DDR: WRITE BW: AVG =   2615 MB/s, PEAK =  27136 MB/s
+DDR: TOTAL BW: AVG =   6192 MB/s, PEAK =  91340 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  88.80 % ( HWI =   5.72 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3572 MB/s, PEAK =  17893 MB/s
+DDR: WRITE BW: AVG =   2618 MB/s, PEAK =  15380 MB/s
+DDR: TOTAL BW: AVG =   6190 MB/s, PEAK =  33273 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  88.57 % ( HWI =   5.58 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3570 MB/s, PEAK =  13739 MB/s
+DDR: WRITE BW: AVG =   2626 MB/s, PEAK =  11597 MB/s
+DDR: TOTAL BW: AVG =   6196 MB/s, PEAK =  25336 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  88.47 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3541 MB/s, PEAK =  49258 MB/s
+DDR: WRITE BW: AVG =   2617 MB/s, PEAK =  52269 MB/s
+DDR: TOTAL BW: AVG =   6158 MB/s, PEAK = 101527 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87. 9 % ( HWI =   5.21 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   6. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3520 MB/s, PEAK =  11320 MB/s
+DDR: WRITE BW: AVG =   2584 MB/s, PEAK =  14960 MB/s
+DDR: TOTAL BW: AVG =   6104 MB/s, PEAK =  26280 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.93 % ( HWI =   5.62 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3528 MB/s, PEAK =  25292 MB/s
+DDR: WRITE BW: AVG =   2524 MB/s, PEAK =  10800 MB/s
+DDR: TOTAL BW: AVG =   6052 MB/s, PEAK =  36092 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85. 3 % ( HWI =   5.23 %, SWI =   0.99 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3601 MB/s, PEAK =  22104 MB/s
+DDR: WRITE BW: AVG =   2492 MB/s, PEAK =   5410 MB/s
+DDR: TOTAL BW: AVG =   6093 MB/s, PEAK =  27514 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.60 % ( HWI =   5.39 %, SWI =   1. 2 % )
+CPU: mcu2_0: TOTAL LOAD =  18. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3652 MB/s, PEAK =  14635 MB/s
+DDR: WRITE BW: AVG =   2466 MB/s, PEAK =  13783 MB/s
+DDR: TOTAL BW: AVG =   6118 MB/s, PEAK =  28418 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.82 % ( HWI =   5.31 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  26. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3616 MB/s, PEAK =  17112 MB/s
+DDR: WRITE BW: AVG =   2467 MB/s, PEAK =  10474 MB/s
+DDR: TOTAL BW: AVG =   6083 MB/s, PEAK =  27586 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  88.83 % ( HWI =   5.58 %, SWI =   1. 1 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   6. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3544 MB/s, PEAK =  19678 MB/s
+DDR: WRITE BW: AVG =   2594 MB/s, PEAK =  23339 MB/s
+DDR: TOTAL BW: AVG =   6138 MB/s, PEAK =  43017 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.81 % ( HWI =   5.58 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3506 MB/s, PEAK =  19534 MB/s
+DDR: WRITE BW: AVG =   2538 MB/s, PEAK =  10717 MB/s
+DDR: TOTAL BW: AVG =   6044 MB/s, PEAK =  30251 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.90 % ( HWI =   5.54 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3656 MB/s, PEAK =  12755 MB/s
+DDR: WRITE BW: AVG =   2478 MB/s, PEAK =   8855 MB/s
+DDR: TOTAL BW: AVG =   6134 MB/s, PEAK =  21610 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  90. 5 % ( HWI =   5.35 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3628 MB/s, PEAK =  16772 MB/s
+DDR: WRITE BW: AVG =   2475 MB/s, PEAK =   5665 MB/s
+DDR: TOTAL BW: AVG =   6103 MB/s, PEAK =  22437 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.81 % ( HWI =   5.47 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3576 MB/s, PEAK =  21847 MB/s
+DDR: WRITE BW: AVG =   2550 MB/s, PEAK =   6640 MB/s
+DDR: TOTAL BW: AVG =   6126 MB/s, PEAK =  28487 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.82 % ( HWI =   5.31 %, SWI =   1. 1 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3653 MB/s, PEAK =  23048 MB/s
+DDR: WRITE BW: AVG =   2462 MB/s, PEAK =   6937 MB/s
+DDR: TOTAL BW: AVG =   6115 MB/s, PEAK =  29985 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.67 % ( HWI =   5.11 %, SWI =   1. 2 % )
+CPU: mcu2_0: TOTAL LOAD =  18. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  26. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3608 MB/s, PEAK =   8838 MB/s
+DDR: WRITE BW: AVG =   2432 MB/s, PEAK =   7712 MB/s
+DDR: TOTAL BW: AVG =   6040 MB/s, PEAK =  16550 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  83.58 % ( HWI =   5.22 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  18. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  26. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3628 MB/s, PEAK =   9965 MB/s
+DDR: WRITE BW: AVG =   2444 MB/s, PEAK =  11674 MB/s
+DDR: TOTAL BW: AVG =   6072 MB/s, PEAK =  21639 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.92 % ( HWI =   5.27 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3657 MB/s, PEAK =  18880 MB/s
+DDR: WRITE BW: AVG =   2450 MB/s, PEAK =   7956 MB/s
+DDR: TOTAL BW: AVG =   6107 MB/s, PEAK =  26836 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.92 % ( HWI =   5.27 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3651 MB/s, PEAK =  14491 MB/s
+DDR: WRITE BW: AVG =   2445 MB/s, PEAK =   8458 MB/s
+DDR: TOTAL BW: AVG =   6096 MB/s, PEAK =  22949 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.24 % ( HWI =   5.34 %, SWI =   1. 1 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3649 MB/s, PEAK =  13560 MB/s
+DDR: WRITE BW: AVG =   2444 MB/s, PEAK =   6960 MB/s
+DDR: TOTAL BW: AVG =   6093 MB/s, PEAK =  20520 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  84.79 % ( HWI =   5.41 %, SWI =   1.28 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3654 MB/s, PEAK =  14549 MB/s
+DDR: WRITE BW: AVG =   2446 MB/s, PEAK =  10822 MB/s
+DDR: TOTAL BW: AVG =   6100 MB/s, PEAK =  25371 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.29 % ( HWI =   5.32 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  26. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3641 MB/s, PEAK =  18488 MB/s
+DDR: WRITE BW: AVG =   2440 MB/s, PEAK =  11618 MB/s
+DDR: TOTAL BW: AVG =   6081 MB/s, PEAK =  30106 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.24 % ( HWI =   5.61 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3691 MB/s, PEAK =  11773 MB/s
+DDR: WRITE BW: AVG =   2464 MB/s, PEAK =  13378 MB/s
+DDR: TOTAL BW: AVG =   6155 MB/s, PEAK =  25151 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.65 % ( HWI =   5.54 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3579 MB/s, PEAK =  15421 MB/s
+DDR: WRITE BW: AVG =   2571 MB/s, PEAK =   9769 MB/s
+DDR: TOTAL BW: AVG =   6150 MB/s, PEAK =  25190 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.24 % ( HWI =   5.61 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   6. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3490 MB/s, PEAK =  13426 MB/s
+DDR: WRITE BW: AVG =   2545 MB/s, PEAK =  12338 MB/s
+DDR: TOTAL BW: AVG =   6035 MB/s, PEAK =  25764 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.66 % ( HWI =   5.18 %, SWI =   1.23 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   7. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3455 MB/s, PEAK =  12805 MB/s
+DDR: WRITE BW: AVG =   2530 MB/s, PEAK =  16095 MB/s
+DDR: TOTAL BW: AVG =   5985 MB/s, PEAK =  28900 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85.92 % ( HWI =   5.27 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   6. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3471 MB/s, PEAK =  20478 MB/s
+DDR: WRITE BW: AVG =   2542 MB/s, PEAK =   7375 MB/s
+DDR: TOTAL BW: AVG =   6013 MB/s, PEAK =  27853 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.63 % ( HWI =   5.44 %, SWI =   0.99 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  26. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3449 MB/s, PEAK =  18764 MB/s
+DDR: WRITE BW: AVG =   2520 MB/s, PEAK =  11882 MB/s
+DDR: TOTAL BW: AVG =   5969 MB/s, PEAK =  30646 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.34 % ( HWI =   5.21 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  31. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3613 MB/s, PEAK =  15968 MB/s
+DDR: WRITE BW: AVG =   2533 MB/s, PEAK =  10976 MB/s
+DDR: TOTAL BW: AVG =   6146 MB/s, PEAK =  26944 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.18 % ( HWI =   5.52 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  26. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3651 MB/s, PEAK =   7844 MB/s
+DDR: WRITE BW: AVG =   2453 MB/s, PEAK =   5302 MB/s
+DDR: TOTAL BW: AVG =   6104 MB/s, PEAK =  13146 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.36 % ( HWI =   5.30 %, SWI =   1. 1 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3646 MB/s, PEAK =  18800 MB/s
+DDR: WRITE BW: AVG =   2452 MB/s, PEAK =  11477 MB/s
+DDR: TOTAL BW: AVG =   6098 MB/s, PEAK =  30277 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  85. 6 % ( HWI =   5.31 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3599 MB/s, PEAK =  11555 MB/s
+DDR: WRITE BW: AVG =   2483 MB/s, PEAK =  16994 MB/s
+DDR: TOTAL BW: AVG =   6082 MB/s, PEAK =  28549 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.93 % ( HWI =   5.27 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  30. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3540 MB/s, PEAK =   7018 MB/s
+DDR: WRITE BW: AVG =   2568 MB/s, PEAK =   6405 MB/s
+DDR: TOTAL BW: AVG =   6108 MB/s, PEAK =  13423 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  86.11 % ( HWI =   5.55 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3662 MB/s, PEAK =  36953 MB/s
+DDR: WRITE BW: AVG =   2457 MB/s, PEAK =  26252 MB/s
+DDR: TOTAL BW: AVG =   6119 MB/s, PEAK =  63205 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.40 % ( HWI =   5.28 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3671 MB/s, PEAK =  17618 MB/s
+DDR: WRITE BW: AVG =   2462 MB/s, PEAK =   7563 MB/s
+DDR: TOTAL BW: AVG =   6133 MB/s, PEAK =  25181 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  88.77 % ( HWI =   5.48 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3698 MB/s, PEAK =  14494 MB/s
+DDR: WRITE BW: AVG =   2475 MB/s, PEAK =   7720 MB/s
+DDR: TOTAL BW: AVG =   6173 MB/s, PEAK =  22214 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  90.40 % ( HWI =   5.80 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3663 MB/s, PEAK =  17588 MB/s
+DDR: WRITE BW: AVG =   2556 MB/s, PEAK =  10978 MB/s
+DDR: TOTAL BW: AVG =   6219 MB/s, PEAK =  28566 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  91.58 % ( HWI =   5.86 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  18. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3627 MB/s, PEAK =  12853 MB/s
+DDR: WRITE BW: AVG =   2616 MB/s, PEAK =   7178 MB/s
+DDR: TOTAL BW: AVG =   6243 MB/s, PEAK =  20031 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  89. 3 % ( HWI =   5.61 %, SWI =   1.27 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  28. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  29. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3563 MB/s, PEAK =  10977 MB/s
+DDR: WRITE BW: AVG =   2599 MB/s, PEAK =  14152 MB/s
+DDR: TOTAL BW: AVG =   6162 MB/s, PEAK =  25129 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  87.93 % ( HWI =   5.27 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   6. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  27. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3467 MB/s, PEAK =  20574 MB/s
+DDR: WRITE BW: AVG =   2549 MB/s, PEAK =   6161 MB/s
+DDR: TOTAL BW: AVG =   6016 MB/s, PEAK =  26735 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  90.84 % ( HWI =   5.44 %, SWI =   0.99 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  32. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  39. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3561 MB/s, PEAK =  13796 MB/s
+DDR: WRITE BW: AVG =   2574 MB/s, PEAK =  14532 MB/s
+DDR: TOTAL BW: AVG =   6135 MB/s, PEAK =  28328 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.51 % ( HWI =   5.97 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   6. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3738 MB/s, PEAK =  17595 MB/s
+DDR: WRITE BW: AVG =   2633 MB/s, PEAK =  15458 MB/s
+DDR: TOTAL BW: AVG =   6371 MB/s, PEAK =  33053 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.77 % ( HWI =   5.70 %, SWI =   0.99 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3719 MB/s, PEAK =  21754 MB/s
+DDR: WRITE BW: AVG =   2615 MB/s, PEAK =  14866 MB/s
+DDR: TOTAL BW: AVG =   6334 MB/s, PEAK =  36620 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.47 % ( HWI =   5.79 %, SWI =   1.51 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  61. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3749 MB/s, PEAK =  12054 MB/s
+DDR: WRITE BW: AVG =   2599 MB/s, PEAK =   6815 MB/s
+DDR: TOTAL BW: AVG =   6348 MB/s, PEAK =  18869 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.85 % ( HWI =   5.81 %, SWI =   0.96 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  39. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3722 MB/s, PEAK =  15435 MB/s
+DDR: WRITE BW: AVG =   2603 MB/s, PEAK =  10120 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  25555 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.76 % ( HWI =   5.73 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3728 MB/s, PEAK =  10412 MB/s
+DDR: WRITE BW: AVG =   2616 MB/s, PEAK =   8466 MB/s
+DDR: TOTAL BW: AVG =   6344 MB/s, PEAK =  18878 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.49 % ( HWI =   5.76 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3730 MB/s, PEAK =  17223 MB/s
+DDR: WRITE BW: AVG =   2595 MB/s, PEAK =   5242 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  22465 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.76 % ( HWI =   5.97 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3726 MB/s, PEAK =  20832 MB/s
+DDR: WRITE BW: AVG =   2606 MB/s, PEAK =  14464 MB/s
+DDR: TOTAL BW: AVG =   6332 MB/s, PEAK =  35296 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.73 % ( HWI =   5.77 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  40. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3714 MB/s, PEAK =   9929 MB/s
+DDR: WRITE BW: AVG =   2599 MB/s, PEAK =   5384 MB/s
+DDR: TOTAL BW: AVG =   6313 MB/s, PEAK =  15313 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.51 % ( HWI =   5.98 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3727 MB/s, PEAK =   9579 MB/s
+DDR: WRITE BW: AVG =   2598 MB/s, PEAK =   5287 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  14866 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.76 % ( HWI =   5.72 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  44. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3761 MB/s, PEAK =  11910 MB/s
+DDR: WRITE BW: AVG =   2624 MB/s, PEAK =   8190 MB/s
+DDR: TOTAL BW: AVG =   6385 MB/s, PEAK =  20100 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.75 % ( HWI =   5.73 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3733 MB/s, PEAK =  19010 MB/s
+DDR: WRITE BW: AVG =   2603 MB/s, PEAK =  10542 MB/s
+DDR: TOTAL BW: AVG =   6336 MB/s, PEAK =  29552 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.75 % ( HWI =   5.73 %, SWI =   0.99 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3753 MB/s, PEAK =  26541 MB/s
+DDR: WRITE BW: AVG =   2620 MB/s, PEAK =  24144 MB/s
+DDR: TOTAL BW: AVG =   6373 MB/s, PEAK =  50685 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.28 % ( HWI =   5.69 %, SWI =   1.23 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  60. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3729 MB/s, PEAK =  26165 MB/s
+DDR: WRITE BW: AVG =   2596 MB/s, PEAK =   6125 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  32290 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.10 % ( HWI =   5.83 %, SWI =   1.21 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  40. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3727 MB/s, PEAK =  16082 MB/s
+DDR: WRITE BW: AVG =   2602 MB/s, PEAK =  14305 MB/s
+DDR: TOTAL BW: AVG =   6329 MB/s, PEAK =  30387 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97. 1 % ( HWI =   5.97 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  45. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  60. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3750 MB/s, PEAK =  20615 MB/s
+DDR: WRITE BW: AVG =   2613 MB/s, PEAK =  14473 MB/s
+DDR: TOTAL BW: AVG =   6363 MB/s, PEAK =  35088 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.46 % ( HWI =   5.82 %, SWI =   1.26 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3739 MB/s, PEAK =  16559 MB/s
+DDR: WRITE BW: AVG =   2599 MB/s, PEAK =   7280 MB/s
+DDR: TOTAL BW: AVG =   6338 MB/s, PEAK =  23839 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.26 % ( HWI =   5.72 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3709 MB/s, PEAK =   6579 MB/s
+DDR: WRITE BW: AVG =   2593 MB/s, PEAK =   5494 MB/s
+DDR: TOTAL BW: AVG =   6302 MB/s, PEAK =  12073 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.24 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3736 MB/s, PEAK =   6708 MB/s
+DDR: WRITE BW: AVG =   2611 MB/s, PEAK =   6235 MB/s
+DDR: TOTAL BW: AVG =   6347 MB/s, PEAK =  12943 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.51 % ( HWI =   5.72 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  21. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3726 MB/s, PEAK =  14208 MB/s
+DDR: WRITE BW: AVG =   2599 MB/s, PEAK =   6832 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  21040 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.22 % ( HWI =   5.79 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3708 MB/s, PEAK =  11559 MB/s
+DDR: WRITE BW: AVG =   2608 MB/s, PEAK =   5176 MB/s
+DDR: TOTAL BW: AVG =   6316 MB/s, PEAK =  16735 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.98 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3733 MB/s, PEAK =   9347 MB/s
+DDR: WRITE BW: AVG =   2615 MB/s, PEAK =   5227 MB/s
+DDR: TOTAL BW: AVG =   6348 MB/s, PEAK =  14574 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.73 % ( HWI =   5.77 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3716 MB/s, PEAK =  16093 MB/s
+DDR: WRITE BW: AVG =   2607 MB/s, PEAK =  17635 MB/s
+DDR: TOTAL BW: AVG =   6323 MB/s, PEAK =  33728 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.78 % ( HWI =   5.69 %, SWI =   1.23 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3713 MB/s, PEAK =  16358 MB/s
+DDR: WRITE BW: AVG =   2623 MB/s, PEAK =  10056 MB/s
+DDR: TOTAL BW: AVG =   6336 MB/s, PEAK =  26414 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.49 % ( HWI =   6. 1 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3717 MB/s, PEAK =  25614 MB/s
+DDR: WRITE BW: AVG =   2615 MB/s, PEAK =  13331 MB/s
+DDR: TOTAL BW: AVG =   6332 MB/s, PEAK =  38945 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.25 % ( HWI =   5.50 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3711 MB/s, PEAK =  17043 MB/s
+DDR: WRITE BW: AVG =   2633 MB/s, PEAK =   9042 MB/s
+DDR: TOTAL BW: AVG =   6344 MB/s, PEAK =  26085 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.24 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3742 MB/s, PEAK =  23793 MB/s
+DDR: WRITE BW: AVG =   2647 MB/s, PEAK =   8129 MB/s
+DDR: TOTAL BW: AVG =   6389 MB/s, PEAK =  31922 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.73 % ( HWI =   5.77 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3718 MB/s, PEAK =  13535 MB/s
+DDR: WRITE BW: AVG =   2610 MB/s, PEAK =   8611 MB/s
+DDR: TOTAL BW: AVG =   6328 MB/s, PEAK =  22146 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.38 % ( HWI =   5.93 %, SWI =   1.18 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  60. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3722 MB/s, PEAK =  24341 MB/s
+DDR: WRITE BW: AVG =   2657 MB/s, PEAK =  16753 MB/s
+DDR: TOTAL BW: AVG =   6379 MB/s, PEAK =  41094 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.71 % ( HWI =   5.79 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3717 MB/s, PEAK =  21094 MB/s
+DDR: WRITE BW: AVG =   2619 MB/s, PEAK =  20399 MB/s
+DDR: TOTAL BW: AVG =   6336 MB/s, PEAK =  41493 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96. 1 % ( HWI =   5.97 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3727 MB/s, PEAK =  13184 MB/s
+DDR: WRITE BW: AVG =   2596 MB/s, PEAK =  10161 MB/s
+DDR: TOTAL BW: AVG =   6323 MB/s, PEAK =  23345 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97. 0 % ( HWI =   5.75 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3742 MB/s, PEAK =  11256 MB/s
+DDR: WRITE BW: AVG =   2616 MB/s, PEAK =   8160 MB/s
+DDR: TOTAL BW: AVG =   6358 MB/s, PEAK =  19416 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.76 % ( HWI =   5.73 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3728 MB/s, PEAK =  12919 MB/s
+DDR: WRITE BW: AVG =   2617 MB/s, PEAK =  11074 MB/s
+DDR: TOTAL BW: AVG =   6345 MB/s, PEAK =  23993 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.77 % ( HWI =   5.72 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3728 MB/s, PEAK =   6380 MB/s
+DDR: WRITE BW: AVG =   2608 MB/s, PEAK =   5769 MB/s
+DDR: TOTAL BW: AVG =   6336 MB/s, PEAK =  12149 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.48 % ( HWI =   6. 3 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3741 MB/s, PEAK =  21185 MB/s
+DDR: WRITE BW: AVG =   2620 MB/s, PEAK =   8041 MB/s
+DDR: TOTAL BW: AVG =   6361 MB/s, PEAK =  29226 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97. 2 % ( HWI =   5.70 %, SWI =   0.99 % )
+CPU: mcu2_0: TOTAL LOAD =  21. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3720 MB/s, PEAK =  15479 MB/s
+DDR: WRITE BW: AVG =   2598 MB/s, PEAK =   8416 MB/s
+DDR: TOTAL BW: AVG =   6318 MB/s, PEAK =  23895 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.75 % ( HWI =   5.75 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  21. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3743 MB/s, PEAK =  16480 MB/s
+DDR: WRITE BW: AVG =   2602 MB/s, PEAK =  10782 MB/s
+DDR: TOTAL BW: AVG =   6345 MB/s, PEAK =  27262 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.49 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3718 MB/s, PEAK =  15300 MB/s
+DDR: WRITE BW: AVG =   2615 MB/s, PEAK =  10648 MB/s
+DDR: TOTAL BW: AVG =   6333 MB/s, PEAK =  25948 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96. 0 % ( HWI =   6. 0 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3725 MB/s, PEAK =  11615 MB/s
+DDR: WRITE BW: AVG =   2621 MB/s, PEAK =   8629 MB/s
+DDR: TOTAL BW: AVG =   6346 MB/s, PEAK =  20244 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.22 % ( HWI =   5.79 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  61. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3725 MB/s, PEAK =  13528 MB/s
+DDR: WRITE BW: AVG =   2588 MB/s, PEAK =  12851 MB/s
+DDR: TOTAL BW: AVG =   6313 MB/s, PEAK =  26379 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.40 % ( HWI =   5.75 %, SWI =   1.19 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3733 MB/s, PEAK =  16088 MB/s
+DDR: WRITE BW: AVG =   2602 MB/s, PEAK =   9641 MB/s
+DDR: TOTAL BW: AVG =   6335 MB/s, PEAK =  25729 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.77 % ( HWI =   5.94 %, SWI =   1.23 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3739 MB/s, PEAK =  14982 MB/s
+DDR: WRITE BW: AVG =   2599 MB/s, PEAK =   8169 MB/s
+DDR: TOTAL BW: AVG =   6338 MB/s, PEAK =  23151 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.50 % ( HWI =   5.98 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  44. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  60. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3746 MB/s, PEAK =   6468 MB/s
+DDR: WRITE BW: AVG =   2620 MB/s, PEAK =   7469 MB/s
+DDR: TOTAL BW: AVG =   6366 MB/s, PEAK =  13937 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97. 0 % ( HWI =   5.75 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3750 MB/s, PEAK =  17202 MB/s
+DDR: WRITE BW: AVG =   2606 MB/s, PEAK =  10898 MB/s
+DDR: TOTAL BW: AVG =   6356 MB/s, PEAK =  28100 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.49 % ( HWI =   5.76 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3740 MB/s, PEAK =  10527 MB/s
+DDR: WRITE BW: AVG =   2598 MB/s, PEAK =   5410 MB/s
+DDR: TOTAL BW: AVG =   6338 MB/s, PEAK =  15937 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.50 % ( HWI =   5.75 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3713 MB/s, PEAK =  13826 MB/s
+DDR: WRITE BW: AVG =   2603 MB/s, PEAK =  12395 MB/s
+DDR: TOTAL BW: AVG =   6316 MB/s, PEAK =  26221 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.72 % ( HWI =   5.79 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3725 MB/s, PEAK =  18511 MB/s
+DDR: WRITE BW: AVG =   2600 MB/s, PEAK =   6529 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  25040 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.77 % ( HWI =   5.47 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3707 MB/s, PEAK =  76139 MB/s
+DDR: WRITE BW: AVG =   2600 MB/s, PEAK =  88838 MB/s
+DDR: TOTAL BW: AVG =   6307 MB/s, PEAK = 164977 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.50 % ( HWI =   5.75 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3749 MB/s, PEAK =  19736 MB/s
+DDR: WRITE BW: AVG =   2613 MB/s, PEAK =  13616 MB/s
+DDR: TOTAL BW: AVG =   6362 MB/s, PEAK =  33352 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.75 % ( HWI =   5.98 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3723 MB/s, PEAK =  12520 MB/s
+DDR: WRITE BW: AVG =   2593 MB/s, PEAK =   9214 MB/s
+DDR: TOTAL BW: AVG =   6316 MB/s, PEAK =  21734 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.51 % ( HWI =   5.72 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  61. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3734 MB/s, PEAK =  14000 MB/s
+DDR: WRITE BW: AVG =   2590 MB/s, PEAK =   6331 MB/s
+DDR: TOTAL BW: AVG =   6324 MB/s, PEAK =  20331 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.85 % ( HWI =   5.79 %, SWI =   1.20 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  40. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   3. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3734 MB/s, PEAK =  15553 MB/s
+DDR: WRITE BW: AVG =   2604 MB/s, PEAK =  17108 MB/s
+DDR: TOTAL BW: AVG =   6338 MB/s, PEAK =  32661 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.72 % ( HWI =   5.52 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  43. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3729 MB/s, PEAK =  15173 MB/s
+DDR: WRITE BW: AVG =   2596 MB/s, PEAK =   9944 MB/s
+DDR: TOTAL BW: AVG =   6325 MB/s, PEAK =  25117 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.72 % ( HWI =   5.52 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3716 MB/s, PEAK =  14280 MB/s
+DDR: WRITE BW: AVG =   2584 MB/s, PEAK =   9936 MB/s
+DDR: TOTAL BW: AVG =   6300 MB/s, PEAK =  24216 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.24 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3753 MB/s, PEAK =   7612 MB/s
+DDR: WRITE BW: AVG =   2609 MB/s, PEAK =  11668 MB/s
+DDR: TOTAL BW: AVG =   6362 MB/s, PEAK =  19280 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.74 % ( HWI =   6. 1 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3700 MB/s, PEAK =  22321 MB/s
+DDR: WRITE BW: AVG =   2600 MB/s, PEAK =  20051 MB/s
+DDR: TOTAL BW: AVG =   6300 MB/s, PEAK =  42372 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.75 % ( HWI =   5.75 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  21. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3694 MB/s, PEAK =  15841 MB/s
+DDR: WRITE BW: AVG =   2586 MB/s, PEAK =  12748 MB/s
+DDR: TOTAL BW: AVG =   6280 MB/s, PEAK =  28589 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.49 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  40. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3713 MB/s, PEAK =  17369 MB/s
+DDR: WRITE BW: AVG =   2595 MB/s, PEAK =   9792 MB/s
+DDR: TOTAL BW: AVG =   6308 MB/s, PEAK =  27161 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96. 0 % ( HWI =   5.48 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3704 MB/s, PEAK =  15873 MB/s
+DDR: WRITE BW: AVG =   2603 MB/s, PEAK =  10578 MB/s
+DDR: TOTAL BW: AVG =   6307 MB/s, PEAK =  26451 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.71 % ( HWI =   5.54 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  41. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3705 MB/s, PEAK =  13944 MB/s
+DDR: WRITE BW: AVG =   2607 MB/s, PEAK =  12604 MB/s
+DDR: TOTAL BW: AVG =   6312 MB/s, PEAK =  26548 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.24 % ( HWI =   5.76 %, SWI =   1.25 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3722 MB/s, PEAK =  20931 MB/s
+DDR: WRITE BW: AVG =   2602 MB/s, PEAK =   5342 MB/s
+DDR: TOTAL BW: AVG =   6324 MB/s, PEAK =  26273 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.76 % ( HWI =   5.97 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  44. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   5. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3748 MB/s, PEAK =  16498 MB/s
+DDR: WRITE BW: AVG =   2626 MB/s, PEAK =   9834 MB/s
+DDR: TOTAL BW: AVG =   6374 MB/s, PEAK =  26332 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  97.75 % ( HWI =   6. 0 %, SWI =   1. 0 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  60. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3740 MB/s, PEAK =  14848 MB/s
+DDR: WRITE BW: AVG =   2588 MB/s, PEAK =   8220 MB/s
+DDR: TOTAL BW: AVG =   6328 MB/s, PEAK =  23068 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  96.34 % ( HWI =   5.60 %, SWI =   1.21 % )
+CPU: mcu2_0: TOTAL LOAD =  19. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  38. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   2. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  59. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3705 MB/s, PEAK =  18072 MB/s
+DDR: WRITE BW: AVG =   2609 MB/s, PEAK =  11832 MB/s
+DDR: TOTAL BW: AVG =   6314 MB/s, PEAK =  29904 MB/s
+
+
+Summary of CPU load,
+====================
+
+CPU: mpu1_0: TOTAL LOAD =  95.78 % ( HWI =   5.70 %, SWI =   1.24 % )
+CPU: mcu2_0: TOTAL LOAD =  20. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU: mcu2_1: TOTAL LOAD =   1. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_1: TOTAL LOAD =  42. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c6x_2: TOTAL LOAD =   4. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+CPU:  c7x_1: TOTAL LOAD =  58. 0 % ( HWI =   0. 0 %, SWI =   0. 0 % )
+
+
+DDR performance statistics,
+===========================
+
+DDR: READ  BW: AVG =   3721 MB/s, PEAK =  13924 MB/s
+DDR: WRITE BW: AVG =   2620 MB/s, PEAK =  12102 MB/s
+DDR: TOTAL BW: AVG =   6341 MB/s, PEAK =  26026 MB/s
+

@@ -1,0 +1,2189 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="1200" height="598" onload="init(evt)" viewBox="0 0 1200 598" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<!-- NOTES:  -->
+<defs>
+	<linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+		<stop stop-color="#eeeeee" offset="5%" />
+		<stop stop-color="#eeeeb0" offset="95%" />
+	</linearGradient>
+</defs>
+<style type="text/css">
+	text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
+	#search, #ignorecase { opacity:0.1; cursor:pointer; }
+	#search:hover, #search.show, #ignorecase:hover, #ignorecase.show { opacity:1; }
+	#subtitle { text-anchor:middle; font-color:rgb(160,160,160); }
+	#title { text-anchor:middle; font-size:17px}
+	#unzoom { cursor:pointer; }
+	#frames > *:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+	.hide { display:none; }
+	.parent { opacity:0.5; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+	"use strict";
+	var details, searchbtn, unzoombtn, matchedtxt, svg, searching, currentSearchTerm, ignorecase, ignorecaseBtn;
+	function init(evt) {
+		details = document.getElementById("details").firstChild;
+		searchbtn = document.getElementById("search");
+		ignorecaseBtn = document.getElementById("ignorecase");
+		unzoombtn = document.getElementById("unzoom");
+		matchedtxt = document.getElementById("matched");
+		svg = document.getElementsByTagName("svg")[0];
+		searching = 0;
+		currentSearchTerm = null;
+
+		// use GET parameters to restore a flamegraphs state.
+		var params = get_params();
+		if (params.x && params.y)
+			zoom(find_group(document.querySelector('[x="' + params.x + '"][y="' + params.y + '"]')));
+                if (params.s) search(params.s);
+	}
+
+	// event listeners
+	window.addEventListener("click", function(e) {
+		var target = find_group(e.target);
+		if (target) {
+			if (target.nodeName == "a") {
+				if (e.ctrlKey === false) return;
+				e.preventDefault();
+			}
+			if (target.classList.contains("parent")) unzoom(true);
+			zoom(target);
+			if (!document.querySelector('.parent')) {
+				// we have basically done a clearzoom so clear the url
+				var params = get_params();
+				if (params.x) delete params.x;
+				if (params.y) delete params.y;
+				history.replaceState(null, null, parse_params(params));
+				unzoombtn.classList.add("hide");
+				return;
+			}
+
+			// set parameters for zoom state
+			var el = target.querySelector("rect");
+			if (el && el.attributes && el.attributes.y && el.attributes._orig_x) {
+				var params = get_params()
+				params.x = el.attributes._orig_x.value;
+				params.y = el.attributes.y.value;
+				history.replaceState(null, null, parse_params(params));
+			}
+		}
+		else if (e.target.id == "unzoom") clearzoom();
+		else if (e.target.id == "search") search_prompt();
+		else if (e.target.id == "ignorecase") toggle_ignorecase();
+	}, false)
+
+	// mouse-over for info
+	// show
+	window.addEventListener("mouseover", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = "Function: " + g_to_text(target);
+	}, false)
+
+	// clear
+	window.addEventListener("mouseout", function(e) {
+		var target = find_group(e.target);
+		if (target) details.nodeValue = ' ';
+	}, false)
+
+	// ctrl-F for search
+	// ctrl-I to toggle case-sensitive search
+	window.addEventListener("keydown",function (e) {
+		if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+			e.preventDefault();
+			search_prompt();
+		}
+		else if (e.ctrlKey && e.keyCode === 73) {
+			e.preventDefault();
+			toggle_ignorecase();
+		}
+	}, false)
+
+	// functions
+	function get_params() {
+		var params = {};
+		var paramsarr = window.location.search.substr(1).split('&');
+		for (var i = 0; i < paramsarr.length; ++i) {
+			var tmp = paramsarr[i].split("=");
+			if (!tmp[0] || !tmp[1]) continue;
+			params[tmp[0]]  = decodeURIComponent(tmp[1]);
+		}
+		return params;
+	}
+	function parse_params(params) {
+		var uri = "?";
+		for (var key in params) {
+			uri += key + '=' + encodeURIComponent(params[key]) + '&';
+		}
+		if (uri.slice(-1) == "&")
+			uri = uri.substring(0, uri.length - 1);
+		if (uri == '?')
+			uri = window.location.href.split('?')[0];
+		return uri;
+	}
+	function find_child(node, selector) {
+		var children = node.querySelectorAll(selector);
+		if (children.length) return children[0];
+	}
+	function find_group(node) {
+		var parent = node.parentElement;
+		if (!parent) return;
+		if (parent.id == "frames") return node;
+		return find_group(parent);
+	}
+	function orig_save(e, attr, val) {
+		if (e.attributes["_orig_" + attr] != undefined) return;
+		if (e.attributes[attr] == undefined) return;
+		if (val == undefined) val = e.attributes[attr].value;
+		e.setAttribute("_orig_" + attr, val);
+	}
+	function orig_load(e, attr) {
+		if (e.attributes["_orig_"+attr] == undefined) return;
+		e.attributes[attr].value = e.attributes["_orig_" + attr].value;
+		e.removeAttribute("_orig_"+attr);
+	}
+	function g_to_text(e) {
+		var text = find_child(e, "title").firstChild.nodeValue;
+		return (text)
+	}
+	function g_to_func(e) {
+		var func = g_to_text(e);
+		// if there's any manipulation we want to do to the function
+		// name before it's searched, do it here before returning.
+		return (func);
+	}
+	function update_text(e) {
+		var r = find_child(e, "rect");
+		var t = find_child(e, "text");
+		var w = parseFloat(r.attributes.width.value) -3;
+		var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+		t.attributes.x.value = parseFloat(r.attributes.x.value) + 3;
+
+		// Smaller than this size won't fit anything
+		if (w < 2 * 12 * 0.59) {
+			t.textContent = "";
+			return;
+		}
+
+		t.textContent = txt;
+		var sl = t.getSubStringLength(0, txt.length);
+		// check if only whitespace or if we can fit the entire string into width w
+		if (/^ *$/.test(txt) || sl < w)
+			return;
+
+		// this isn't perfect, but gives a good starting point
+		// and avoids calling getSubStringLength too often
+		var start = Math.floor((w/sl) * txt.length);
+		for (var x = start; x > 0; x = x-2) {
+			if (t.getSubStringLength(0, x + 2) <= w) {
+				t.textContent = txt.substring(0, x) + "..";
+				return;
+			}
+		}
+		t.textContent = "";
+	}
+
+	// zoom
+	function zoom_reset(e) {
+		if (e.attributes != undefined) {
+			orig_load(e, "x");
+			orig_load(e, "width");
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_reset(c[i]);
+		}
+	}
+	function zoom_child(e, x, ratio) {
+		if (e.attributes != undefined) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = (parseFloat(e.attributes.x.value) - x - 10) * ratio + 10;
+				if (e.tagName == "text")
+					e.attributes.x.value = find_child(e.parentNode, "rect[x]").attributes.x.value + 3;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseFloat(e.attributes.width.value) * ratio;
+			}
+		}
+
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_child(c[i], x - 10, ratio);
+		}
+	}
+	function zoom_parent(e) {
+		if (e.attributes) {
+			if (e.attributes.x != undefined) {
+				orig_save(e, "x");
+				e.attributes.x.value = 10;
+			}
+			if (e.attributes.width != undefined) {
+				orig_save(e, "width");
+				e.attributes.width.value = parseInt(svg.width.baseVal.value) - (10 * 2);
+			}
+		}
+		if (e.childNodes == undefined) return;
+		for (var i = 0, c = e.childNodes; i < c.length; i++) {
+			zoom_parent(c[i]);
+		}
+	}
+	function zoom(node) {
+		var attr = find_child(node, "rect").attributes;
+		var width = parseFloat(attr.width.value);
+		var xmin = parseFloat(attr.x.value);
+		var xmax = parseFloat(xmin + width);
+		var ymin = parseFloat(attr.y.value);
+		var ratio = (svg.width.baseVal.value - 2 * 10) / width;
+
+		// XXX: Workaround for JavaScript float issues (fix me)
+		var fudge = 0.0001;
+
+		unzoombtn.classList.remove("hide");
+
+		var el = document.getElementById("frames").children;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var a = find_child(e, "rect").attributes;
+			var ex = parseFloat(a.x.value);
+			var ew = parseFloat(a.width.value);
+			var upstack;
+			// Is it an ancestor
+			if (0 == 0) {
+				upstack = parseFloat(a.y.value) > ymin;
+			} else {
+				upstack = parseFloat(a.y.value) < ymin;
+			}
+			if (upstack) {
+				// Direct ancestor
+				if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+					e.classList.add("parent");
+					zoom_parent(e);
+					update_text(e);
+				}
+				// not in current path
+				else
+					e.classList.add("hide");
+			}
+			// Children maybe
+			else {
+				// no common path
+				if (ex < xmin || ex + fudge >= xmax) {
+					e.classList.add("hide");
+				}
+				else {
+					zoom_child(e, xmin, ratio);
+					update_text(e);
+				}
+			}
+		}
+		search();
+	}
+	function unzoom(dont_update_text) {
+		unzoombtn.classList.add("hide");
+		var el = document.getElementById("frames").children;
+		for(var i = 0; i < el.length; i++) {
+			el[i].classList.remove("parent");
+			el[i].classList.remove("hide");
+			zoom_reset(el[i]);
+			if(!dont_update_text) update_text(el[i]);
+		}
+		search();
+	}
+	function clearzoom() {
+		unzoom();
+
+		// remove zoom state
+		var params = get_params();
+		if (params.x) delete params.x;
+		if (params.y) delete params.y;
+		history.replaceState(null, null, parse_params(params));
+	}
+
+	// search
+	function toggle_ignorecase() {
+		ignorecase = !ignorecase;
+		if (ignorecase) {
+			ignorecaseBtn.classList.add("show");
+		} else {
+			ignorecaseBtn.classList.remove("show");
+		}
+		reset_search();
+		search();
+	}
+	function reset_search() {
+		var el = document.querySelectorAll("#frames rect");
+		for (var i = 0; i < el.length; i++) {
+			orig_load(el[i], "fill")
+		}
+		var params = get_params();
+		delete params.s;
+		history.replaceState(null, null, parse_params(params));
+	}
+	function search_prompt() {
+		if (!searching) {
+			var term = prompt("Enter a search term (regexp " +
+			    "allowed, eg: ^ext4_)"
+			    + (ignorecase ? ", ignoring case" : "")
+			    + "\nPress Ctrl-i to toggle case sensitivity", "");
+			if (term != null) search(term);
+		} else {
+			reset_search();
+			searching = 0;
+			currentSearchTerm = null;
+			searchbtn.classList.remove("show");
+			searchbtn.firstChild.nodeValue = "Search"
+			matchedtxt.classList.add("hide");
+			matchedtxt.firstChild.nodeValue = ""
+		}
+	}
+	function search(term) {
+		if (term) currentSearchTerm = term;
+
+		var re = new RegExp(currentSearchTerm, ignorecase ? 'i' : '');
+		var el = document.getElementById("frames").children;
+		var matches = new Object();
+		var maxwidth = 0;
+		for (var i = 0; i < el.length; i++) {
+			var e = el[i];
+			var func = g_to_func(e);
+			var rect = find_child(e, "rect");
+			if (func == null || rect == null)
+				continue;
+
+			// Save max width. Only works as we have a root frame
+			var w = parseFloat(rect.attributes.width.value);
+			if (w > maxwidth)
+				maxwidth = w;
+
+			if (func.match(re)) {
+				// highlight
+				var x = parseFloat(rect.attributes.x.value);
+				orig_save(rect, "fill");
+				rect.attributes.fill.value = "rgb(230,0,230)";
+
+				// remember matches
+				if (matches[x] == undefined) {
+					matches[x] = w;
+				} else {
+					if (w > matches[x]) {
+						// overwrite with parent
+						matches[x] = w;
+					}
+				}
+				searching = 1;
+			}
+		}
+		if (!searching)
+			return;
+		var params = get_params();
+		params.s = currentSearchTerm;
+		history.replaceState(null, null, parse_params(params));
+
+		searchbtn.classList.add("show");
+		searchbtn.firstChild.nodeValue = "Reset Search";
+
+		// calculate percent matched, excluding vertical overlap
+		var count = 0;
+		var lastx = -1;
+		var lastw = 0;
+		var keys = Array();
+		for (k in matches) {
+			if (matches.hasOwnProperty(k))
+				keys.push(k);
+		}
+		// sort the matched frames by their x location
+		// ascending, then width descending
+		keys.sort(function(a, b){
+			return a - b;
+		});
+		// Step through frames saving only the biggest bottom-up frames
+		// thanks to the sort order. This relies on the tree property
+		// where children are always smaller than their parents.
+		var fudge = 0.0001;	// JavaScript floating point
+		for (var k in keys) {
+			var x = parseFloat(keys[k]);
+			var w = matches[keys[k]];
+			if (x >= lastx + lastw - fudge) {
+				count += w;
+				lastx = x;
+				lastw = w;
+			}
+		}
+		// display matched percent
+		matchedtxt.classList.remove("hide");
+		var pct = 100 * count / maxwidth;
+		if (pct != 100) pct = pct.toFixed(1)
+		matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+	}
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="598.0" fill="url(#background)"  />
+<text id="title" x="600.00" y="24" >Flame Graph</text>
+<text id="details" x="10.00" y="581" > </text>
+<text id="unzoom" x="10.00" y="24" class="hide">Reset Zoom</text>
+<text id="search" x="1090.00" y="24" >Search</text>
+<text id="ignorecase" x="1174.00" y="24" >ic</text>
+<text id="matched" x="1090.00" y="581" > </text>
+<g id="frames">
+<g >
+<title>lock_timer_base (17,993,644 samples, 0.33%)</title><rect x="422.8" y="149" width="3.9" height="15.0" fill="rgb(250,80,14)" rx="2" ry="2" />
+<text  x="425.79" y="159.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::empty@plt (17,847,144 samples, 0.33%)</title><rect x="228.4" y="261" width="3.8" height="15.0" fill="rgb(249,82,54)" rx="2" ry="2" />
+<text  x="231.36" y="271.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (15,615,270 samples, 0.29%)</title><rect x="615.4" y="357" width="3.4" height="15.0" fill="rgb(250,207,47)" rx="2" ry="2" />
+<text  x="618.42" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::convert::stringIsNumber@plt (15,150,709 samples, 0.28%)</title><rect x="14.2" y="373" width="3.3" height="15.0" fill="rgb(213,225,52)" rx="2" ry="2" />
+<text  x="17.19" y="383.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="437" width="6.6" height="15.0" fill="rgb(244,63,35)" rx="2" ry="2" />
+<text  x="1183.63" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::popo::SubscriberPortData&gt;::has_value (186,235,610 samples, 3.43%)</title><rect x="1045.7" y="293" width="40.4" height="15.0" fill="rgb(234,86,14)" rx="2" ry="2" />
+<text  x="1048.67" y="303.5" >iox..</text>
+</g>
+<g >
+<title>iox::popo::PublisherPortRouDi::PublisherPortRouDi (42,846,756 samples, 0.79%)</title><rect x="881.6" y="309" width="9.3" height="15.0" fill="rgb(209,112,8)" rx="2" ry="2" />
+<text  x="884.58" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::PublisherPortData*, 128ul&gt;::~vector (21,514,185 samples, 0.40%)</title><rect x="832.4" y="309" width="4.7" height="15.0" fill="rgb(234,157,36)" rx="2" ry="2" />
+<text  x="835.39" y="319.5" ></text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::updateLivelinessOfProcess (15,758,278 samples, 0.29%)</title><rect x="107.1" y="277" width="3.4" height="15.0" fill="rgb(223,142,25)" rx="2" ry="2" />
+<text  x="110.09" y="287.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::getNextIdx@plt (19,761,926 samples, 0.36%)</title><rect x="1112.9" y="325" width="4.3" height="15.0" fill="rgb(229,65,50)" rx="2" ry="2" />
+<text  x="1115.91" y="335.5" ></text>
+</g>
+<g >
+<title>std::chrono::_V2::steady_clock::now (15,758,278 samples, 0.29%)</title><rect x="107.1" y="261" width="3.4" height="15.0" fill="rgb(224,13,41)" rx="2" ry="2" />
+<text  x="110.09" y="271.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortManager::doDiscoveryForSubscriberPort (38,625,488 samples, 0.71%)</title><rect x="1037.3" y="309" width="8.4" height="15.0" fill="rgb(229,59,38)" rx="2" ry="2" />
+<text  x="1040.28" y="319.5" ></text>
+</g>
+<g >
+<title>skb_free_head (41,559,780 samples, 0.76%)</title><rect x="521.0" y="101" width="9.1" height="15.0" fill="rgb(205,39,31)" rx="2" ry="2" />
+<text  x="524.03" y="111.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::call_at_index&lt;0ul, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::destructor@plt (27,342,681 samples, 0.50%)</title><rect x="257.3" y="325" width="5.9" height="15.0" fill="rgb(253,93,50)" rx="2" ry="2" />
+<text  x="260.26" y="335.5" ></text>
+</g>
+<g >
+<title>std::this_thread::sleep_for&lt;long, std::ratio&lt;1l, 1000l&gt; &gt; (178,634,472 samples, 3.29%)</title><rect x="1129.6" y="373" width="38.8" height="15.0" fill="rgb(213,173,20)" rx="2" ry="2" />
+<text  x="1132.59" y="383.5" >std..</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="437" width="735.4" height="15.0" fill="rgb(237,112,23)" rx="2" ry="2" />
+<text  x="13.00" y="447.5" >std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>el0_irq_naked (14,747,673 samples, 0.27%)</title><rect x="954.1" y="277" width="3.2" height="15.0" fill="rgb(253,168,29)" rx="2" ry="2" />
+<text  x="957.13" y="287.5" ></text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::discoveryUpdate (1,459,416,102 samples, 26.86%)</title><rect x="775.3" y="357" width="316.9" height="15.0" fill="rgb(207,153,6)" rx="2" ry="2" />
+<text  x="778.30" y="367.5" >iox::roudi::ProcessManager::discoveryUpdate</text>
+</g>
+<g >
+<title>iox::popo::BasePort::BasePort@plt (14,860,479 samples, 0.27%)</title><rect x="837.1" y="309" width="3.2" height="15.0" fill="rgb(234,53,50)" rx="2" ry="2" />
+<text  x="840.06" y="319.5" ></text>
+</g>
+<g >
+<title>fput (14,086,270 samples, 0.26%)</title><rect x="395.6" y="165" width="3.1" height="15.0" fill="rgb(207,222,4)" rx="2" ry="2" />
+<text  x="398.60" y="175.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_setsockopt (14,461,834 samples, 0.27%)</title><rect x="367.6" y="229" width="3.1" height="15.0" fill="rgb(229,159,32)" rx="2" ry="2" />
+<text  x="370.61" y="239.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::~variant (15,470,620 samples, 0.28%)</title><rect x="643.8" y="325" width="3.4" height="15.0" fill="rgb(243,178,11)" rx="2" ry="2" />
+<text  x="646.85" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::getNextIdx (13,044,792 samples, 0.24%)</title><rect x="1117.2" y="341" width="2.8" height="15.0" fill="rgb(207,128,28)" rx="2" ry="2" />
+<text  x="1120.20" y="351.5" ></text>
+</g>
+<g >
+<title>setsockopt@plt (18,152,424 samples, 0.33%)</title><rect x="370.7" y="325" width="4.0" height="15.0" fill="rgb(210,63,48)" rx="2" ry="2" />
+<text  x="373.75" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::not_null&lt;iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt;* const, void&gt;::not_null (18,063,965 samples, 0.33%)</title><rect x="887.0" y="277" width="3.9" height="15.0" fill="rgb(218,108,23)" rx="2" ry="2" />
+<text  x="889.96" y="287.5" ></text>
+</g>
+<g >
+<title>refill_obj_stock (12,912,016 samples, 0.24%)</title><rect x="521.0" y="37" width="2.8" height="15.0" fill="rgb(225,172,15)" rx="2" ry="2" />
+<text  x="524.03" y="47.5" ></text>
+</g>
+<g >
+<title>memcmp (14,132,766 samples, 0.26%)</title><rect x="163.2" y="309" width="3.0" height="15.0" fill="rgb(212,11,4)" rx="2" ry="2" />
+<text  x="166.17" y="319.5" ></text>
+</g>
+<g >
+<title>futex_wait (19,236,921 samples, 0.35%)</title><rect x="48.6" y="165" width="4.2" height="15.0" fill="rgb(223,191,1)" rx="2" ry="2" />
+<text  x="51.62" y="175.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_recvfrom (619,245,957 samples, 11.40%)</title><rect x="395.6" y="213" width="134.5" height="15.0" fill="rgb(206,177,31)" rx="2" ry="2" />
+<text  x="398.60" y="223.5" >__arm64_sys_recv..</text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::operator bool (37,496,089 samples, 0.69%)</title><rect x="1168.4" y="389" width="8.1" height="15.0" fill="rgb(220,218,3)" rx="2" ry="2" />
+<text  x="1171.38" y="399.5" ></text>
+</g>
+<g >
+<title>std::mutex::lock@plt (20,050,952 samples, 0.37%)</title><rect x="759.3" y="357" width="4.4" height="15.0" fill="rgb(218,59,54)" rx="2" ry="2" />
+<text  x="762.31" y="367.5" ></text>
+</g>
+<g >
+<title>iox::units::Duration::operator&gt; (15,589,266 samples, 0.29%)</title><rect x="1126.2" y="373" width="3.4" height="15.0" fill="rgb(252,50,42)" rx="2" ry="2" />
+<text  x="1129.20" y="383.5" ></text>
+</g>
+<g >
+<title>kfree_skbmem (33,691,939 samples, 0.62%)</title><rect x="513.7" y="133" width="7.3" height="15.0" fill="rgb(235,163,39)" rx="2" ry="2" />
+<text  x="516.71" y="143.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortManager::doDiscoveryForPublisherPort (58,037,216 samples, 1.07%)</title><rect x="900.1" y="309" width="12.6" height="15.0" fill="rgb(209,227,46)" rx="2" ry="2" />
+<text  x="903.07" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::expected (34,562,510 samples, 0.64%)</title><rect x="538.9" y="325" width="7.5" height="15.0" fill="rgb(245,14,19)" rx="2" ry="2" />
+<text  x="541.90" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;long&gt;, iox::posix::PosixCallResult&lt;long&gt; &gt;::~expected@plt (20,076,038 samples, 0.37%)</title><rect x="196.7" y="357" width="4.4" height="15.0" fill="rgb(254,68,41)" rx="2" ry="2" />
+<text  x="199.75" y="367.5" ></text>
+</g>
+<g >
+<title>iox::roudi::FixedPositionContainer&lt;iox::popo::ConditionVariableData, 1024ul&gt;::content (16,596,827 samples, 0.31%)</title><rect x="799.8" y="293" width="3.6" height="15.0" fill="rgb(239,167,0)" rx="2" ry="2" />
+<text  x="802.84" y="303.5" ></text>
+</g>
+<g >
+<title>sysfs_slab_release (13,952,206 samples, 0.26%)</title><rect x="527.0" y="69" width="3.1" height="15.0" fill="rgb(206,197,20)" rx="2" ry="2" />
+<text  x="530.02" y="79.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::isInvalidIterOrDifferentLists@plt (13,044,792 samples, 0.24%)</title><rect x="1099.3" y="325" width="2.8" height="15.0" fill="rgb(218,199,16)" rx="2" ry="2" />
+<text  x="1102.26" y="335.5" ></text>
+</g>
+<g >
+<title>schedule_timeout (258,063,721 samples, 4.75%)</title><rect x="426.7" y="149" width="56.0" height="15.0" fill="rgb(223,73,36)" rx="2" ry="2" />
+<text  x="429.70" y="159.5" >sched..</text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::begin@plt (16,678,667 samples, 0.31%)</title><rect x="224.7" y="261" width="3.7" height="15.0" fill="rgb(245,37,28)" rx="2" ry="2" />
+<text  x="227.73" y="271.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;long, int, void*, unsigned long, int, sockaddr*, unsigned int*&gt;::PosixCallBuilder@plt (27,066,992 samples, 0.50%)</title><rect x="374.7" y="341" width="5.9" height="15.0" fill="rgb(215,188,19)" rx="2" ry="2" />
+<text  x="377.69" y="351.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="421" width="6.6" height="15.0" fill="rgb(209,41,34)" rx="2" ry="2" />
+<text  x="1183.63" y="431.5" ></text>
+</g>
+<g >
+<title>hrtimer_nanosleep (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="245" width="25.7" height="15.0" fill="rgb(241,221,28)" rx="2" ry="2" />
+<text  x="1136.26" y="255.5" >h..</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (4,698,055 samples, 0.09%)</title><rect x="1180.7" y="341" width="1.0" height="15.0" fill="rgb(207,220,25)" rx="2" ry="2" />
+<text  x="1183.67" y="351.5" ></text>
+</g>
+<g >
+<title>iox::roudi::FixedPositionContainer&lt;iox::popo::PublisherPortData, 128ul&gt;::content (25,671,090 samples, 0.47%)</title><rect x="894.5" y="309" width="5.6" height="15.0" fill="rgb(216,171,24)" rx="2" ry="2" />
+<text  x="897.50" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::MethodCallback&lt;void&gt;::operator (4,698,055 samples, 0.09%)</title><rect x="1180.7" y="373" width="1.0" height="15.0" fill="rgb(247,114,10)" rx="2" ry="2" />
+<text  x="1183.67" y="383.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt; (13,799,892 samples, 0.25%)</title><rect x="588.0" y="341" width="3.0" height="15.0" fill="rgb(228,118,42)" rx="2" ry="2" />
+<text  x="590.98" y="351.5" ></text>
+</g>
+<g >
+<title>std::mutex::lock (41,321,473 samples, 0.76%)</title><rect x="43.8" y="325" width="9.0" height="15.0" fill="rgb(212,123,26)" rx="2" ry="2" />
+<text  x="46.82" y="335.5" ></text>
+</g>
+<g >
+<title>skb_release_data (41,559,780 samples, 0.76%)</title><rect x="521.0" y="117" width="9.1" height="15.0" fill="rgb(252,171,37)" rx="2" ry="2" />
+<text  x="524.03" y="127.5" ></text>
+</g>
+<g >
+<title>__errno_location (14,955,231 samples, 0.28%)</title><rect x="285.6" y="341" width="3.2" height="15.0" fill="rgb(236,142,19)" rx="2" ry="2" />
+<text  x="288.55" y="351.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::smart_lock&lt;iox::roudi::ProcessManager, std::mutex&gt;::Proxy::Proxy (41,321,473 samples, 0.76%)</title><rect x="43.8" y="341" width="9.0" height="15.0" fill="rgb(219,192,18)" rx="2" ry="2" />
+<text  x="46.82" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::roudi::Process*&gt;::and_then (74,790,750 samples, 1.38%)</title><rect x="98.5" y="341" width="16.3" height="15.0" fill="rgb(248,154,50)" rx="2" ry="2" />
+<text  x="101.55" y="351.5" ></text>
+</g>
+<g >
+<title>iox::roudi::RouDi::processMessage (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="389" width="2.8" height="15.0" fill="rgb(226,67,37)" rx="2" ry="2" />
+<text  x="1190.16" y="399.5" ></text>
+</g>
+<g >
+<title>kmem_cache_free (33,691,939 samples, 0.62%)</title><rect x="513.7" y="117" width="7.3" height="15.0" fill="rgb(254,44,52)" rx="2" ry="2" />
+<text  x="516.71" y="127.5" ></text>
+</g>
+<g >
+<title>iox::roudi::RouDi::processRuntimeMessages (3,337,828,616 samples, 61.42%)</title><rect x="10.0" y="389" width="724.8" height="15.0" fill="rgb(246,98,45)" rx="2" ry="2" />
+<text  x="13.00" y="399.5" >iox::roudi::RouDi::processRuntimeMessages</text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::expected@plt (15,031,798 samples, 0.28%)</title><rect x="249.7" y="357" width="3.2" height="15.0" fill="rgb(213,177,42)" rx="2" ry="2" />
+<text  x="252.67" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::ServerPortData*, 128ul&gt;::pop_back@plt (16,550,887 samples, 0.30%)</title><rect x="965.7" y="293" width="3.6" height="15.0" fill="rgb(236,92,53)" rx="2" ry="2" />
+<text  x="968.68" y="303.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="469" width="2.8" height="15.0" fill="rgb(232,125,7)" rx="2" ry="2" />
+<text  x="1190.16" y="479.5" ></text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="405" width="0.4" height="15.0" fill="rgb(242,206,34)" rx="2" ry="2" />
+<text  x="1183.15" y="415.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="517" width="432.6" height="15.0" fill="rgb(238,55,2)" rx="2" ry="2" />
+<text  x="750.63" y="527.5" >[libc-2.30.so]</text>
+</g>
+<g >
+<title>fpsimd_load_state (15,610,795 samples, 0.29%)</title><rect x="535.5" y="245" width="3.4" height="15.0" fill="rgb(247,166,44)" rx="2" ry="2" />
+<text  x="538.51" y="255.5" ></text>
+</g>
+<g >
+<title>std::count_if&lt;__gnu_cxx::__normal_iterator&lt;char*, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;, iox::runtime::IpcMessage::setMessage (17,379,244 samples, 0.32%)</title><rect x="235.8" y="261" width="3.7" height="15.0" fill="rgb(246,192,17)" rx="2" ry="2" />
+<text  x="238.77" y="271.5" ></text>
+</g>
+<g >
+<title>__errno_location@plt (9,397,225 samples, 0.17%)</title><rect x="745.4" y="357" width="2.1" height="15.0" fill="rgb(231,159,34)" rx="2" ry="2" />
+<text  x="748.42" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::roudi::Process*&gt;::optional (16,422,715 samples, 0.30%)</title><rect x="155.4" y="325" width="3.6" height="15.0" fill="rgb(254,176,9)" rx="2" ry="2" />
+<text  x="158.41" y="335.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallVerificator&lt;long&gt;::failureReturnValue&lt;int&gt; (29,044,458 samples, 0.53%)</title><rect x="574.3" y="341" width="6.3" height="15.0" fill="rgb(253,107,54)" rx="2" ry="2" />
+<text  x="577.28" y="351.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::roudi::SubscriberPortChangingData const&amp;&gt;@plt (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="213" width="0.4" height="15.0" fill="rgb(246,18,42)" rx="2" ry="2" />
+<text  x="1183.15" y="223.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;long long, char const*, char**, int&gt;::operator (32,537,860 samples, 0.60%)</title><rect x="708.4" y="357" width="7.0" height="15.0" fill="rgb(232,127,30)" rx="2" ry="2" />
+<text  x="711.36" y="367.5" ></text>
+</g>
+<g >
+<title>iox::roudi::Process::getName (90,485,906 samples, 1.67%)</title><rect x="166.2" y="325" width="19.7" height="15.0" fill="rgb(248,223,27)" rx="2" ry="2" />
+<text  x="169.24" y="335.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="469" width="0.4" height="15.0" fill="rgb(252,60,34)" rx="2" ry="2" />
+<text  x="1183.15" y="479.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::PublisherPortData*, 128ul&gt;::begin@plt (17,980,228 samples, 0.33%)</title><rect x="780.1" y="325" width="3.9" height="15.0" fill="rgb(207,188,17)" rx="2" ry="2" />
+<text  x="783.12" y="335.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="501" width="735.4" height="15.0" fill="rgb(215,103,21)" rx="2" ry="2" />
+<text  x="13.00" y="511.5" >[libpthread-2.30.so]</text>
+</g>
+<g >
+<title>el0_sync_handler (14,461,834 samples, 0.27%)</title><rect x="367.6" y="293" width="3.1" height="15.0" fill="rgb(208,21,47)" rx="2" ry="2" />
+<text  x="370.61" y="303.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (22,894,967 samples, 0.42%)</title><rect x="715.4" y="309" width="5.0" height="15.0" fill="rgb(224,211,4)" rx="2" ry="2" />
+<text  x="718.42" y="319.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (10,176,254 samples, 0.19%)</title><rect x="745.4" y="421" width="2.2" height="15.0" fill="rgb(225,30,54)" rx="2" ry="2" />
+<text  x="748.42" y="431.5" ></text>
+</g>
+<g >
+<title>el0_sync (643,514,768 samples, 11.84%)</title><rect x="390.3" y="293" width="139.8" height="15.0" fill="rgb(247,167,29)" rx="2" ry="2" />
+<text  x="393.33" y="303.5" >el0_sync</text>
+</g>
+<g >
+<title>el0_svc (643,514,768 samples, 11.84%)</title><rect x="390.3" y="261" width="139.8" height="15.0" fill="rgb(224,56,37)" rx="2" ry="2" />
+<text  x="393.33" y="271.5" >el0_svc</text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long&gt;, iox::posix::PosixCallResult&lt;long&gt; &gt;::variant&lt;0ul, iox::posix::PosixCallResult&lt;long&gt; &gt; (33,315,283 samples, 0.61%)</title><rect x="550.3" y="309" width="7.2" height="15.0" fill="rgb(205,63,12)" rx="2" ry="2" />
+<text  x="553.26" y="319.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortManager::doDiscovery (1,459,416,102 samples, 26.86%)</title><rect x="775.3" y="341" width="316.9" height="15.0" fill="rgb(246,18,15)" rx="2" ry="2" />
+<text  x="778.30" y="351.5" >iox::roudi::PortManager::doDiscovery</text>
+</g>
+<g >
+<title>iox::cxx::internal::Require (18,063,965 samples, 0.33%)</title><rect x="887.0" y="261" width="3.9" height="15.0" fill="rgb(219,40,30)" rx="2" ry="2" />
+<text  x="889.96" y="271.5" ></text>
+</g>
+<g >
+<title>std::distance&lt;char*&gt;@plt (41,046,554 samples, 0.76%)</title><rect x="621.9" y="357" width="8.9" height="15.0" fill="rgb(223,77,30)" rx="2" ry="2" />
+<text  x="624.88" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (223,644,955 samples, 4.12%)</title><rect x="201.1" y="309" width="48.6" height="15.0" fill="rgb(228,123,30)" rx="2" ry="2" />
+<text  x="204.11" y="319.5" >iox:..</text>
+</g>
+<g >
+<title>iox::cxx::internal::call_at_index&lt;0ul, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::destructor (19,924,596 samples, 0.37%)</title><rect x="252.9" y="325" width="4.4" height="15.0" fill="rgb(240,188,11)" rx="2" ry="2" />
+<text  x="255.93" y="335.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortManager::doDiscovery@plt (15,266,559 samples, 0.28%)</title><rect x="772.0" y="357" width="3.3" height="15.0" fill="rgb(210,9,4)" rx="2" ry="2" />
+<text  x="774.98" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::variant&lt;0ul, iox::posix::PosixCallResult&lt;long long&gt; &gt; (31,207,454 samples, 0.57%)</title><rect x="672.5" y="309" width="6.8" height="15.0" fill="rgb(217,122,1)" rx="2" ry="2" />
+<text  x="675.47" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::ConditionVariableData*, 1024ul&gt;::emplace_back&lt;iox::popo::ConditionVariableData*&gt; (16,596,827 samples, 0.31%)</title><rect x="799.8" y="277" width="3.6" height="15.0" fill="rgb(228,83,18)" rx="2" ry="2" />
+<text  x="802.84" y="287.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallVerificator&lt;int&gt;::failureReturnValue&lt;int&gt; (18,359,495 samples, 0.34%)</title><rect x="567.1" y="341" width="4.0" height="15.0" fill="rgb(210,28,41)" rx="2" ry="2" />
+<text  x="570.09" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;void, iox::cxx::MethodCallbackError&gt;::~expected (25,189,807 samples, 0.46%)</title><rect x="1181.7" y="373" width="5.5" height="15.0" fill="rgb(226,100,9)" rx="2" ry="2" />
+<text  x="1184.69" y="383.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (10,176,254 samples, 0.19%)</title><rect x="745.4" y="469" width="2.2" height="15.0" fill="rgb(207,67,4)" rx="2" ry="2" />
+<text  x="748.42" y="479.5" ></text>
+</g>
+<g >
+<title>iox::cxx::string&lt;100ul&gt;::c_str@plt (14,257,511 samples, 0.26%)</title><rect x="170.8" y="309" width="3.1" height="15.0" fill="rgb(220,72,4)" rx="2" ry="2" />
+<text  x="173.81" y="319.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;int&gt;::evaluate (34,562,510 samples, 0.64%)</title><rect x="538.9" y="341" width="7.5" height="15.0" fill="rgb(236,29,30)" rx="2" ry="2" />
+<text  x="541.90" y="351.5" ></text>
+</g>
+<g >
+<title>call_timer_fn.isra.0 (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="181" width="3.8" height="15.0" fill="rgb(220,80,17)" rx="2" ry="2" />
+<text  x="1028.45" y="191.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="469" width="432.6" height="15.0" fill="rgb(214,85,6)" rx="2" ry="2" />
+<text  x="750.63" y="479.5" >std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;v..</text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::setMessage@plt (26,377,571 samples, 0.49%)</title><rect x="239.5" y="277" width="5.8" height="15.0" fill="rgb(245,176,0)" rx="2" ry="2" />
+<text  x="242.54" y="287.5" ></text>
+</g>
+<g >
+<title>el0_svc (19,236,921 samples, 0.35%)</title><rect x="48.6" y="245" width="4.2" height="15.0" fill="rgb(223,108,36)" rx="2" ry="2" />
+<text  x="51.62" y="255.5" ></text>
+</g>
+<g >
+<title>__nanosleep (134,818,497 samples, 2.48%)</title><rect x="1133.3" y="357" width="29.2" height="15.0" fill="rgb(216,97,39)" rx="2" ry="2" />
+<text  x="1136.26" y="367.5" >__..</text>
+</g>
+<g >
+<title>iox::cxx::internal::call_at_index&lt;0ul, iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::destructor@plt (15,470,620 samples, 0.28%)</title><rect x="643.8" y="309" width="3.4" height="15.0" fill="rgb(232,184,10)" rx="2" ry="2" />
+<text  x="646.85" y="319.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortMultiProducer::tryGetCaProMessage (38,625,488 samples, 0.71%)</title><rect x="1037.3" y="293" width="8.4" height="15.0" fill="rgb(226,27,22)" rx="2" ry="2" />
+<text  x="1040.28" y="303.5" ></text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="405" width="432.6" height="15.0" fill="rgb(212,142,48)" rx="2" ry="2" />
+<text  x="750.63" y="415.5" >std::__invoke_impl&lt;void, void </text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::roudi::Process*&gt;::construct_value&lt;iox::roudi::Process*&gt;@plt (14,404,680 samples, 0.27%)</title><rect x="147.6" y="309" width="3.1" height="15.0" fill="rgb(230,91,29)" rx="2" ry="2" />
+<text  x="150.56" y="319.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::size@plt (30,787,730 samples, 0.57%)</title><rect x="724.2" y="373" width="6.7" height="15.0" fill="rgb(213,109,11)" rx="2" ry="2" />
+<text  x="727.19" y="383.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcInterfaceBase::timedReceive (1,978,158,046 samples, 36.40%)</title><rect x="185.9" y="373" width="429.5" height="15.0" fill="rgb(238,144,27)" rx="2" ry="2" />
+<text  x="188.88" y="383.5" >iox::runtime::IpcInterfaceBase::timedReceive</text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="389" width="6.6" height="15.0" fill="rgb(254,214,2)" rx="2" ry="2" />
+<text  x="1183.63" y="399.5" ></text>
+</g>
+<g >
+<title>schedule (237,825,222 samples, 4.38%)</title><rect x="431.1" y="133" width="51.6" height="15.0" fill="rgb(211,28,45)" rx="2" ry="2" />
+<text  x="434.09" y="143.5" >sched..</text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::clear (38,074,948 samples, 0.70%)</title><rect x="208.8" y="245" width="8.3" height="15.0" fill="rgb(241,215,0)" rx="2" ry="2" />
+<text  x="211.82" y="255.5" ></text>
+</g>
+<g >
+<title>iox::posix::Semaphore::timedWait (10,176,254 samples, 0.19%)</title><rect x="745.4" y="373" width="2.2" height="15.0" fill="rgb(254,191,23)" rx="2" ry="2" />
+<text  x="748.42" y="383.5" ></text>
+</g>
+<g >
+<title>el0_sync (19,236,921 samples, 0.35%)</title><rect x="48.6" y="277" width="4.2" height="15.0" fill="rgb(229,189,51)" rx="2" ry="2" />
+<text  x="51.62" y="287.5" ></text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::load (58,037,216 samples, 1.07%)</title><rect x="900.1" y="277" width="12.6" height="15.0" fill="rgb(233,168,37)" rx="2" ry="2" />
+<text  x="903.07" y="287.5" ></text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::operator bool@plt (17,625,139 samples, 0.32%)</title><rect x="741.6" y="389" width="3.8" height="15.0" fill="rgb(224,7,15)" rx="2" ry="2" />
+<text  x="744.59" y="399.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortMultiProducer::SubscriberPortMultiProducer (15,565,088 samples, 0.29%)</title><rect x="1029.2" y="309" width="3.4" height="15.0" fill="rgb(232,187,12)" rx="2" ry="2" />
+<text  x="1032.24" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::ServerPortData*, 128ul&gt;::~vector (16,550,887 samples, 0.30%)</title><rect x="965.7" y="309" width="3.6" height="15.0" fill="rgb(213,193,31)" rx="2" ry="2" />
+<text  x="968.68" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (55,093,253 samples, 1.01%)</title><rect x="98.5" y="325" width="12.0" height="15.0" fill="rgb(235,27,53)" rx="2" ry="2" />
+<text  x="101.55" y="335.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcInterfaceBase::setMessageFromString (141,482,417 samples, 2.60%)</title><rect x="208.8" y="277" width="30.7" height="15.0" fill="rgb(239,106,39)" rx="2" ry="2" />
+<text  x="211.82" y="287.5" >io..</text>
+</g>
+<g >
+<title>irq_exit (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="229" width="3.8" height="15.0" fill="rgb(211,5,39)" rx="2" ry="2" />
+<text  x="1028.45" y="239.5" ></text>
+</g>
+<g >
+<title>iox::cxx::success&lt;iox::posix::PosixCallResult&lt;int&gt; &gt;::success&lt;iox::posix::PosixCallResult&lt;int&gt;&amp;&gt;@plt (16,599,841 samples, 0.31%)</title><rect x="321.2" y="341" width="3.6" height="15.0" fill="rgb(212,6,15)" rx="2" ry="2" />
+<text  x="324.17" y="351.5" ></text>
+</g>
+<g >
+<title>skb_free_datagram (75,275,422 samples, 1.39%)</title><rect x="513.7" y="165" width="16.4" height="15.0" fill="rgb(252,77,20)" rx="2" ry="2" />
+<text  x="516.71" y="175.5" ></text>
+</g>
+<g >
+<title>el0_svc (14,461,834 samples, 0.27%)</title><rect x="367.6" y="277" width="3.1" height="15.0" fill="rgb(241,204,30)" rx="2" ry="2" />
+<text  x="370.61" y="287.5" ></text>
+</g>
+<g >
+<title>pthread_mutex_unlock@plt (34,477,060 samples, 0.63%)</title><rect x="36.3" y="325" width="7.5" height="15.0" fill="rgb(246,124,28)" rx="2" ry="2" />
+<text  x="39.33" y="335.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (29,044,458 samples, 0.53%)</title><rect x="574.3" y="245" width="6.3" height="15.0" fill="rgb(254,65,36)" rx="2" ry="2" />
+<text  x="577.28" y="255.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::basic_string@plt (17,734,270 samples, 0.33%)</title><rect x="182.0" y="309" width="3.9" height="15.0" fill="rgb(223,107,12)" rx="2" ry="2" />
+<text  x="185.03" y="319.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="485" width="0.4" height="15.0" fill="rgb(245,149,43)" rx="2" ry="2" />
+<text  x="1183.15" y="495.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::roudi::Process*&gt;::or_else@plt (28,721,479 samples, 0.53%)</title><rect x="64.7" y="357" width="6.2" height="15.0" fill="rgb(253,99,17)" rx="2" ry="2" />
+<text  x="67.70" y="367.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::~basic_string@plt (19,338,536 samples, 0.36%)</title><rect x="583.8" y="341" width="4.2" height="15.0" fill="rgb(244,8,49)" rx="2" ry="2" />
+<text  x="586.78" y="351.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_nanosleep (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="261" width="25.7" height="15.0" fill="rgb(234,93,38)" rx="2" ry="2" />
+<text  x="1136.26" y="271.5" >_..</text>
+</g>
+<g >
+<title>el0_irq_naked (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="277" width="3.8" height="15.0" fill="rgb(221,133,32)" rx="2" ry="2" />
+<text  x="1028.45" y="287.5" ></text>
+</g>
+<g >
+<title>iox_recvfrom (729,165,896 samples, 13.42%)</title><rect x="380.6" y="325" width="158.3" height="15.0" fill="rgb(226,57,18)" rx="2" ry="2" />
+<text  x="383.57" y="335.5" >iox_recvfrom</text>
+</g>
+<g >
+<title>MemPoolIntr (10,176,254 samples, 0.19%)</title><rect x="745.4" y="533" width="2.2" height="15.0" fill="rgb(215,28,54)" rx="2" ry="2" />
+<text  x="748.42" y="543.5" ></text>
+</g>
+<g >
+<title>std::move&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;&amp;&gt;@plt (25,511,462 samples, 0.47%)</title><rect x="591.0" y="341" width="5.5" height="15.0" fill="rgb(229,42,30)" rx="2" ry="2" />
+<text  x="593.98" y="351.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="501" width="6.6" height="15.0" fill="rgb(245,56,53)" rx="2" ry="2" />
+<text  x="1183.63" y="511.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (10,176,254 samples, 0.19%)</title><rect x="745.4" y="453" width="2.2" height="15.0" fill="rgb(240,95,33)" rx="2" ry="2" />
+<text  x="748.42" y="463.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (10,176,254 samples, 0.19%)</title><rect x="745.4" y="437" width="2.2" height="15.0" fill="rgb(205,82,41)" rx="2" ry="2" />
+<text  x="748.42" y="447.5" ></text>
+</g>
+<g >
+<title>iox::popo::BasePort::toBeDestroyed (157,937,674 samples, 2.91%)</title><rect x="840.3" y="309" width="34.3" height="15.0" fill="rgb(220,156,35)" rx="2" ry="2" />
+<text  x="843.29" y="319.5" >io..</text>
+</g>
+<g >
+<title>PortIntr (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="533" width="0.4" height="15.0" fill="rgb(232,60,13)" rx="2" ry="2" />
+<text  x="1183.15" y="543.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::popo::PublisherPortData*&gt;@plt (17,769,487 samples, 0.33%)</title><rect x="961.8" y="277" width="3.9" height="15.0" fill="rgb(218,228,34)" rx="2" ry="2" />
+<text  x="964.82" y="287.5" ></text>
+</g>
+<g >
+<title>__skb_datagram_iter (49,562,809 samples, 0.91%)</title><rect x="503.0" y="149" width="10.7" height="15.0" fill="rgb(226,64,5)" rx="2" ry="2" />
+<text  x="505.95" y="159.5" ></text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::monitorProcesses (156,626,755 samples, 2.88%)</title><rect x="1092.2" y="357" width="34.0" height="15.0" fill="rgb(224,188,27)" rx="2" ry="2" />
+<text  x="1095.19" y="367.5" >io..</text>
+</g>
+<g >
+<title>iox::runtime::IpcInterfaceBase::timedReceive (188,130,454 samples, 3.46%)</title><rect x="208.8" y="293" width="40.9" height="15.0" fill="rgb(251,8,17)" rx="2" ry="2" />
+<text  x="211.82" y="303.5" >iox..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="517" width="735.4" height="15.0" fill="rgb(214,210,13)" rx="2" ry="2" />
+<text  x="13.00" y="527.5" >[libc-2.30.so]</text>
+</g>
+<g >
+<title>__sys_setsockopt (14,461,834 samples, 0.27%)</title><rect x="367.6" y="213" width="3.1" height="15.0" fill="rgb(222,31,31)" rx="2" ry="2" />
+<text  x="370.61" y="223.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="469" width="6.6" height="15.0" fill="rgb(232,125,14)" rx="2" ry="2" />
+<text  x="1183.63" y="479.5" ></text>
+</g>
+<g >
+<title>IPC-msg-process (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="533" width="735.4" height="15.0" fill="rgb(253,63,48)" rx="2" ry="2" />
+<text  x="13.00" y="543.5" >IPC-msg-process</text>
+</g>
+<g >
+<title>gic_handle_irq (29,044,458 samples, 0.53%)</title><rect x="574.3" y="293" width="6.3" height="15.0" fill="rgb(227,215,1)" rx="2" ry="2" />
+<text  x="577.28" y="303.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;long, int, void*, unsigned long, int, sockaddr*, unsigned int*&gt;::operator (729,165,896 samples, 13.42%)</title><rect x="380.6" y="341" width="158.3" height="15.0" fill="rgb(254,135,20)" rx="2" ry="2" />
+<text  x="383.57" y="351.5" >iox::posix::PosixCal..</text>
+</g>
+<g >
+<title>all (5,434,294,939 samples, 100%)</title><rect x="10.0" y="549" width="1180.0" height="15.0" fill="rgb(236,93,45)" rx="2" ry="2" />
+<text  x="13.00" y="559.5" ></text>
+</g>
+<g >
+<title>std::chrono::duration&lt;long, std::ratio&lt;1l, 1000l&gt; &gt;::duration&lt;long, std::ratio&lt;1l, 1l&gt;, void&gt; (26,895,972 samples, 0.49%)</title><rect x="1162.5" y="357" width="5.9" height="15.0" fill="rgb(254,128,53)" rx="2" ry="2" />
+<text  x="1165.54" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~variant@plt (752,315 samples, 0.01%)</title><rect x="747.5" y="357" width="0.1" height="15.0" fill="rgb(242,161,50)" rx="2" ry="2" />
+<text  x="750.46" y="367.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="453" width="6.6" height="15.0" fill="rgb(244,8,16)" rx="2" ry="2" />
+<text  x="1183.63" y="463.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::emplace_at_index&lt;0ul, iox::posix::PosixCallResult&lt;long long&gt; &gt;@plt (41,179,809 samples, 0.76%)</title><rect x="663.5" y="309" width="9.0" height="15.0" fill="rgb(209,141,52)" rx="2" ry="2" />
+<text  x="666.53" y="319.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::_M_construct&lt;char const*&gt; (18,813,980 samples, 0.35%)</title><rect x="601.6" y="357" width="4.1" height="15.0" fill="rgb(238,149,6)" rx="2" ry="2" />
+<text  x="604.59" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::expected (72,387,263 samples, 1.33%)</title><rect x="663.5" y="325" width="15.8" height="15.0" fill="rgb(249,129,39)" rx="2" ry="2" />
+<text  x="666.53" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::convert::stringIsNumberWithErrorMessage@plt (16,417,798 samples, 0.30%)</title><rect x="699.8" y="357" width="3.6" height="15.0" fill="rgb(221,24,8)" rx="2" ry="2" />
+<text  x="702.81" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::string&lt;100ul&gt;::operator std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; (37,410,011 samples, 0.69%)</title><rect x="173.9" y="309" width="8.1" height="15.0" fill="rgb(250,186,9)" rx="2" ry="2" />
+<text  x="176.91" y="319.5" ></text>
+</g>
+<g >
+<title>__errno_location@plt (21,014,206 samples, 0.39%)</title><rect x="288.8" y="341" width="4.6" height="15.0" fill="rgb(208,135,7)" rx="2" ry="2" />
+<text  x="291.80" y="351.5" ></text>
+</g>
+<g >
+<title>refill_obj_stock (14,695,558 samples, 0.27%)</title><rect x="523.8" y="53" width="3.2" height="15.0" fill="rgb(224,28,12)" rx="2" ry="2" />
+<text  x="526.83" y="63.5" ></text>
+</g>
+<g >
+<title>el0_svc (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="309" width="25.7" height="15.0" fill="rgb(227,216,2)" rx="2" ry="2" />
+<text  x="1136.26" y="319.5" >e..</text>
+</g>
+<g >
+<title>iox::roudi::PortManager::handleServerPorts (16,550,887 samples, 0.30%)</title><rect x="965.7" y="325" width="3.6" height="15.0" fill="rgb(246,18,40)" rx="2" ry="2" />
+<text  x="968.68" y="335.5" ></text>
+</g>
+<g >
+<title>kfree_skb (75,275,422 samples, 1.39%)</title><rect x="513.7" y="149" width="16.4" height="15.0" fill="rgb(228,216,49)" rx="2" ry="2" />
+<text  x="516.71" y="159.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::and_then (223,644,955 samples, 4.12%)</title><rect x="201.1" y="357" width="48.6" height="15.0" fill="rgb(250,196,43)" rx="2" ry="2" />
+<text  x="204.11" y="367.5" >iox:..</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="453" width="2.8" height="15.0" fill="rgb(221,107,25)" rx="2" ry="2" />
+<text  x="1190.16" y="463.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortMultiProducer::~SubscriberPortMultiProducer (21,489,237 samples, 0.40%)</title><rect x="1032.6" y="309" width="4.7" height="15.0" fill="rgb(207,191,48)" rx="2" ry="2" />
+<text  x="1035.62" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::Require@plt (22,556,017 samples, 0.42%)</title><rect x="114.8" y="293" width="4.9" height="15.0" fill="rgb(217,128,40)" rx="2" ry="2" />
+<text  x="117.79" y="303.5" ></text>
+</g>
+<g >
+<title>__schedule (59,015,229 samples, 1.09%)</title><rect x="1146.2" y="197" width="12.8" height="15.0" fill="rgb(227,224,24)" rx="2" ry="2" />
+<text  x="1149.20" y="207.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (20,238,499 samples, 0.37%)</title><rect x="426.7" y="117" width="4.4" height="15.0" fill="rgb(243,57,30)" rx="2" ry="2" />
+<text  x="429.70" y="127.5" ></text>
+</g>
+<g >
+<title>run_timer_softirq (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="197" width="3.8" height="15.0" fill="rgb(225,78,39)" rx="2" ry="2" />
+<text  x="1028.45" y="207.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="421" width="735.4" height="15.0" fill="rgb(205,182,33)" rx="2" ry="2" />
+<text  x="13.00" y="431.5" >std::__invoke&lt;void </text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::load (21,530,952 samples, 0.40%)</title><rect x="1041.0" y="277" width="4.7" height="15.0" fill="rgb(220,136,26)" rx="2" ry="2" />
+<text  x="1043.99" y="287.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::roudi::Process*&gt;::and_then (40,115,771 samples, 0.74%)</title><rect x="56.0" y="357" width="8.7" height="15.0" fill="rgb(237,113,32)" rx="2" ry="2" />
+<text  x="58.99" y="367.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::_M_construct&lt;char const*&gt; (14,718,273 samples, 0.27%)</title><rect x="580.6" y="341" width="3.2" height="15.0" fill="rgb(243,8,1)" rx="2" ry="2" />
+<text  x="583.59" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::roudi::Process*&gt;::emplace&lt;iox::roudi::Process*&gt;@plt (21,780,595 samples, 0.40%)</title><rect x="150.7" y="325" width="4.7" height="15.0" fill="rgb(239,161,51)" rx="2" ry="2" />
+<text  x="153.68" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::~expected (15,470,620 samples, 0.28%)</title><rect x="643.8" y="341" width="3.4" height="15.0" fill="rgb(237,196,18)" rx="2" ry="2" />
+<text  x="646.85" y="351.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (14,747,673 samples, 0.27%)</title><rect x="954.1" y="245" width="3.2" height="15.0" fill="rgb(220,35,3)" rx="2" ry="2" />
+<text  x="957.13" y="255.5" ></text>
+</g>
+<g >
+<title>iox::algorithm::doesContainValue&lt;long&gt;@plt (29,044,458 samples, 0.53%)</title><rect x="574.3" y="325" width="6.3" height="15.0" fill="rgb(211,137,53)" rx="2" ry="2" />
+<text  x="577.28" y="335.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (10,176,254 samples, 0.19%)</title><rect x="745.4" y="485" width="2.2" height="15.0" fill="rgb(227,39,5)" rx="2" ry="2" />
+<text  x="748.42" y="495.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;long long&gt;::evaluate@plt (22,894,967 samples, 0.42%)</title><rect x="715.4" y="357" width="5.0" height="15.0" fill="rgb(253,32,9)" rx="2" ry="2" />
+<text  x="718.42" y="367.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;long&gt;::suppressErrorMessagesForErrnos&lt;int, int&gt;@plt (30,789,708 samples, 0.57%)</title><rect x="270.8" y="357" width="6.7" height="15.0" fill="rgb(238,198,2)" rx="2" ry="2" />
+<text  x="273.83" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::string&lt;100ul&gt;::c_str (19,279,808 samples, 0.35%)</title><rect x="159.0" y="309" width="4.2" height="15.0" fill="rgb(226,30,46)" rx="2" ry="2" />
+<text  x="161.98" y="319.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortIntrospection&lt;iox::popo::PublisherPortUser, iox::popo::SubscriberPortUser&gt;::send (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="277" width="0.4" height="15.0" fill="rgb(205,112,53)" rx="2" ry="2" />
+<text  x="1183.15" y="287.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;int, int, int, int, void const*, unsigned int&gt;::operator (73,976,888 samples, 1.36%)</title><rect x="358.6" y="341" width="16.1" height="15.0" fill="rgb(205,190,1)" rx="2" ry="2" />
+<text  x="361.63" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::expected@plt (21,212,296 samples, 0.39%)</title><rect x="639.2" y="341" width="4.6" height="15.0" fill="rgb(216,25,22)" rx="2" ry="2" />
+<text  x="642.24" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::emplace_at_index&lt;0ul, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;@plt (59,256,009 samples, 1.09%)</title><rect x="302.7" y="325" width="12.9" height="15.0" fill="rgb(246,6,25)" rx="2" ry="2" />
+<text  x="305.74" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::~expected (47,267,277 samples, 0.87%)</title><rect x="252.9" y="357" width="10.3" height="15.0" fill="rgb(215,153,33)" rx="2" ry="2" />
+<text  x="255.93" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~variant (43,200,362 samples, 0.79%)</title><rect x="293.4" y="325" width="9.3" height="15.0" fill="rgb(221,203,41)" rx="2" ry="2" />
+<text  x="296.36" y="335.5" ></text>
+</g>
+<g >
+<title>call_timer_fn.isra.0 (14,747,673 samples, 0.27%)</title><rect x="954.1" y="181" width="3.2" height="15.0" fill="rgb(207,32,26)" rx="2" ry="2" />
+<text  x="957.13" y="191.5" ></text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::load (139,258,684 samples, 2.56%)</title><rect x="844.3" y="293" width="30.3" height="15.0" fill="rgb(223,16,46)" rx="2" ry="2" />
+<text  x="847.34" y="303.5" >st..</text>
+</g>
+<g >
+<title>el0_sync (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="341" width="25.7" height="15.0" fill="rgb(252,25,26)" rx="2" ry="2" />
+<text  x="1136.26" y="351.5" >e..</text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::run@plt (32,904,892 samples, 0.61%)</title><rect x="752.2" y="389" width="7.1" height="15.0" fill="rgb(221,68,13)" rx="2" ry="2" />
+<text  x="755.16" y="399.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortManager::handleInterfaces (100,544,588 samples, 1.85%)</title><rect x="803.4" y="325" width="21.9" height="15.0" fill="rgb(237,39,32)" rx="2" ry="2" />
+<text  x="806.44" y="335.5" >i..</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="453" width="432.6" height="15.0" fill="rgb(206,23,4)" rx="2" ry="2" />
+<text  x="750.63" y="463.5" >std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (10,176,254 samples, 0.19%)</title><rect x="745.4" y="405" width="2.2" height="15.0" fill="rgb(219,41,12)" rx="2" ry="2" />
+<text  x="748.42" y="415.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortPool::getSubscriberPortDataList (199,232,653 samples, 3.67%)</title><rect x="1045.7" y="309" width="43.2" height="15.0" fill="rgb(217,224,36)" rx="2" ry="2" />
+<text  x="1048.67" y="319.5" >iox:..</text>
+</g>
+<g >
+<title>iox::popo::BasePort::getMembers@plt (15,565,088 samples, 0.29%)</title><rect x="1029.2" y="277" width="3.4" height="15.0" fill="rgb(233,30,47)" rx="2" ry="2" />
+<text  x="1032.24" y="287.5" ></text>
+</g>
+<g >
+<title>iox::popo::PublisherPortRouDi::~PublisherPortRouDi@plt (20,762,799 samples, 0.38%)</title><rect x="788.1" y="325" width="4.5" height="15.0" fill="rgb(234,152,37)" rx="2" ry="2" />
+<text  x="791.05" y="335.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (10,176,254 samples, 0.19%)</title><rect x="745.4" y="389" width="2.2" height="15.0" fill="rgb(212,10,44)" rx="2" ry="2" />
+<text  x="748.42" y="399.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~expected (17,215,645 samples, 0.32%)</title><rect x="193.0" y="357" width="3.7" height="15.0" fill="rgb(213,105,39)" rx="2" ry="2" />
+<text  x="196.01" y="367.5" ></text>
+</g>
+<g >
+<title>kfree (41,559,780 samples, 0.76%)</title><rect x="521.0" y="85" width="9.1" height="15.0" fill="rgb(221,195,5)" rx="2" ry="2" />
+<text  x="524.03" y="95.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="517" width="6.6" height="15.0" fill="rgb(239,34,18)" rx="2" ry="2" />
+<text  x="1183.63" y="527.5" ></text>
+</g>
+<g >
+<title>skb_copy_datagram_iter (49,562,809 samples, 0.91%)</title><rect x="503.0" y="165" width="10.7" height="15.0" fill="rgb(219,59,35)" rx="2" ry="2" />
+<text  x="505.95" y="175.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::roudi::SubscriberPortChangingData, 256ul&gt;::push_back (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="229" width="0.4" height="15.0" fill="rgb(234,22,14)" rx="2" ry="2" />
+<text  x="1183.15" y="239.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="501" width="432.6" height="15.0" fill="rgb(206,197,54)" rx="2" ry="2" />
+<text  x="750.63" y="511.5" >[libpthread-2.30.so]</text>
+</g>
+<g >
+<title>iox::roudi::PortPool::getConditionVariableDataList (16,596,827 samples, 0.31%)</title><rect x="799.8" y="309" width="3.6" height="15.0" fill="rgb(205,104,0)" rx="2" ry="2" />
+<text  x="802.84" y="319.5" ></text>
+</g>
+<g >
+<title>iox::popo::BasePort::getMembers@plt (24,782,791 samples, 0.46%)</title><rect x="881.6" y="293" width="5.4" height="15.0" fill="rgb(248,48,50)" rx="2" ry="2" />
+<text  x="884.58" y="303.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortMultiProducer::SubscriberPortMultiProducer (15,475,299 samples, 0.28%)</title><rect x="792.6" y="325" width="3.3" height="15.0" fill="rgb(211,29,47)" rx="2" ry="2" />
+<text  x="795.56" y="335.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::PosixCallDetails&lt;long long&gt;::PosixCallDetails (16,765,579 samples, 0.31%)</title><rect x="682.5" y="325" width="3.7" height="15.0" fill="rgb(246,66,41)" rx="2" ry="2" />
+<text  x="685.51" y="335.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::_M_construct&lt;char*&gt; (17,466,456 samples, 0.32%)</title><rect x="720.4" y="373" width="3.8" height="15.0" fill="rgb(228,194,11)" rx="2" ry="2" />
+<text  x="723.39" y="383.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::~variant@plt (35,765,961 samples, 0.66%)</title><rect x="655.8" y="341" width="7.7" height="15.0" fill="rgb(249,167,41)" rx="2" ry="2" />
+<text  x="658.77" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~variant@plt (130,154,800 samples, 2.40%)</title><rect x="324.8" y="341" width="28.2" height="15.0" fill="rgb(242,116,28)" rx="2" ry="2" />
+<text  x="327.78" y="351.5" >i..</text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (20,762,799 samples, 0.38%)</title><rect x="788.1" y="245" width="4.5" height="15.0" fill="rgb(254,15,45)" rx="2" ry="2" />
+<text  x="791.05" y="255.5" ></text>
+</g>
+<g >
+<title>_raw_spin_lock_bh (14,461,834 samples, 0.27%)</title><rect x="367.6" y="181" width="3.1" height="15.0" fill="rgb(229,208,16)" rx="2" ry="2" />
+<text  x="370.61" y="191.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallVerificator&lt;long&gt;::PosixCallVerificator@plt (14,742,259 samples, 0.27%)</title><rect x="571.1" y="341" width="3.2" height="15.0" fill="rgb(242,221,2)" rx="2" ry="2" />
+<text  x="574.08" y="351.5" ></text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::findProcess (327,430,488 samples, 6.03%)</title><rect x="114.8" y="341" width="71.1" height="15.0" fill="rgb(214,75,42)" rx="2" ry="2" />
+<text  x="117.79" y="351.5" >iox::rou..</text>
+</g>
+<g >
+<title>iox::roudi::RouDi::processMessage (709,130,530 samples, 13.05%)</title><rect x="31.9" y="373" width="154.0" height="15.0" fill="rgb(226,152,17)" rx="2" ry="2" />
+<text  x="34.90" y="383.5" >iox::roudi::RouDi::..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (37,410,011 samples, 0.69%)</title><rect x="173.9" y="293" width="8.1" height="15.0" fill="rgb(222,161,26)" rx="2" ry="2" />
+<text  x="176.91" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator!=&lt;false&gt; (31,299,308 samples, 0.58%)</title><rect x="1095.3" y="341" width="6.8" height="15.0" fill="rgb(249,122,53)" rx="2" ry="2" />
+<text  x="1098.30" y="351.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkSender&lt;iox::popo::ChunkSenderData&lt;8u, iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt; &gt;::~ChunkSender (13,422,364 samples, 0.25%)</title><rect x="878.7" y="309" width="2.9" height="15.0" fill="rgb(206,5,13)" rx="2" ry="2" />
+<text  x="881.67" y="319.5" ></text>
+</g>
+<g >
+<title>wake_up_process (14,747,673 samples, 0.27%)</title><rect x="954.1" y="149" width="3.2" height="15.0" fill="rgb(224,115,39)" rx="2" ry="2" />
+<text  x="957.13" y="159.5" ></text>
+</g>
+<g >
+<title>el0_sync (14,461,834 samples, 0.27%)</title><rect x="367.6" y="309" width="3.1" height="15.0" fill="rgb(209,147,34)" rx="2" ry="2" />
+<text  x="370.61" y="319.5" ></text>
+</g>
+<g >
+<title>obj_cgroup_uncharge (12,912,016 samples, 0.24%)</title><rect x="521.0" y="53" width="2.8" height="15.0" fill="rgb(209,53,22)" rx="2" ry="2" />
+<text  x="524.03" y="63.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long&gt;, iox::posix::PosixCallResult&lt;long&gt; &gt;::~variant@plt (25,732,162 samples, 0.47%)</title><rect x="353.0" y="341" width="5.6" height="15.0" fill="rgb(239,137,5)" rx="2" ry="2" />
+<text  x="356.04" y="351.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="133" width="3.8" height="15.0" fill="rgb(210,161,20)" rx="2" ry="2" />
+<text  x="1028.45" y="143.5" ></text>
+</g>
+<g >
+<title>__sys_recvfrom (619,245,957 samples, 11.40%)</title><rect x="395.6" y="197" width="134.5" height="15.0" fill="rgb(235,173,20)" rx="2" ry="2" />
+<text  x="398.60" y="207.5" >__sys_recvfrom</text>
+</g>
+<g >
+<title>__softirqentry_text_start (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="213" width="3.8" height="15.0" fill="rgb(239,158,13)" rx="2" ry="2" />
+<text  x="1028.45" y="223.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (19,236,921 samples, 0.35%)</title><rect x="48.6" y="261" width="4.2" height="15.0" fill="rgb(211,41,12)" rx="2" ry="2" />
+<text  x="51.62" y="271.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="453" width="0.4" height="15.0" fill="rgb(229,145,24)" rx="2" ry="2" />
+<text  x="1183.15" y="463.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortPool::getPublisherPortDataList (244,115,231 samples, 4.49%)</title><rect x="912.7" y="309" width="53.0" height="15.0" fill="rgb(241,102,6)" rx="2" ry="2" />
+<text  x="915.67" y="319.5" >iox::..</text>
+</g>
+<g >
+<title>__arch_copy_to_user (27,887,591 samples, 0.51%)</title><rect x="507.7" y="101" width="6.0" height="15.0" fill="rgb(229,43,51)" rx="2" ry="2" />
+<text  x="510.66" y="111.5" ></text>
+</g>
+<g >
+<title>schedule (59,015,229 samples, 1.09%)</title><rect x="1146.2" y="213" width="12.8" height="15.0" fill="rgb(232,193,8)" rx="2" ry="2" />
+<text  x="1149.20" y="223.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::ReturnSuccess&lt;void&gt;::call&lt;iox::cxx::function_ref&lt;void  (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="357" width="0.4" height="15.0" fill="rgb(241,60,1)" rx="2" ry="2" />
+<text  x="1183.15" y="367.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="421" width="2.8" height="15.0" fill="rgb(217,180,15)" rx="2" ry="2" />
+<text  x="1190.16" y="431.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::posix::PosixCallResult&lt;int&gt; &gt; (16,456,130 samples, 0.30%)</title><rect x="538.9" y="309" width="3.6" height="15.0" fill="rgb(234,186,16)" rx="2" ry="2" />
+<text  x="541.90" y="319.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (93,107,411 samples, 1.71%)</title><rect x="482.7" y="165" width="20.3" height="15.0" fill="rgb(219,103,29)" rx="2" ry="2" />
+<text  x="485.73" y="175.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (15,758,278 samples, 0.29%)</title><rect x="107.1" y="309" width="3.4" height="15.0" fill="rgb(244,214,32)" rx="2" ry="2" />
+<text  x="110.09" y="319.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::smart_lock&lt;iox::roudi::ProcessManager, std::mutex&gt;::Proxy::~Proxy (34,477,060 samples, 0.63%)</title><rect x="36.3" y="357" width="7.5" height="15.0" fill="rgb(250,21,43)" rx="2" ry="2" />
+<text  x="39.33" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::PublisherPortData*, 128ul&gt;::~vector@plt (18,540,925 samples, 0.34%)</title><rect x="784.0" y="325" width="4.1" height="15.0" fill="rgb(224,38,40)" rx="2" ry="2" />
+<text  x="787.03" y="335.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="485" width="432.6" height="15.0" fill="rgb(228,53,37)" rx="2" ry="2" />
+<text  x="750.63" y="495.5" >[libstdc++.so.6.0.28]</text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (15,758,278 samples, 0.29%)</title><rect x="107.1" y="293" width="3.4" height="15.0" fill="rgb(220,208,20)" rx="2" ry="2" />
+<text  x="110.09" y="303.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortPool::getPublisherPortDataList (15,024,163 samples, 0.28%)</title><rect x="1088.9" y="325" width="3.3" height="15.0" fill="rgb(239,48,10)" rx="2" ry="2" />
+<text  x="1091.93" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::begin (19,761,926 samples, 0.36%)</title><rect x="1112.9" y="341" width="4.3" height="15.0" fill="rgb(233,34,19)" rx="2" ry="2" />
+<text  x="1115.91" y="351.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (20,762,799 samples, 0.38%)</title><rect x="788.1" y="293" width="4.5" height="15.0" fill="rgb(223,58,11)" rx="2" ry="2" />
+<text  x="791.05" y="303.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::roudi::Process*&amp;&gt; (19,697,497 samples, 0.36%)</title><rect x="110.5" y="325" width="4.3" height="15.0" fill="rgb(233,8,49)" rx="2" ry="2" />
+<text  x="113.51" y="335.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (643,514,768 samples, 11.84%)</title><rect x="390.3" y="277" width="139.8" height="15.0" fill="rgb(225,180,12)" rx="2" ry="2" />
+<text  x="393.33" y="287.5" >el0_sync_handler</text>
+</g>
+<g >
+<title>iox::roudi::PortManager::handleConditionVariables (16,596,827 samples, 0.31%)</title><rect x="799.8" y="325" width="3.6" height="15.0" fill="rgb(249,99,8)" rx="2" ry="2" />
+<text  x="802.84" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::isInvalidIterator (39,563,398 samples, 0.73%)</title><rect x="122.9" y="293" width="8.6" height="15.0" fill="rgb(220,181,46)" rx="2" ry="2" />
+<text  x="125.87" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::success&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;::~success (17,117,607 samples, 0.31%)</title><rect x="267.1" y="357" width="3.7" height="15.0" fill="rgb(217,69,41)" rx="2" ry="2" />
+<text  x="270.11" y="367.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="517" width="0.4" height="15.0" fill="rgb(249,134,24)" rx="2" ry="2" />
+<text  x="1183.15" y="527.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (40,100,286 samples, 0.74%)</title><rect x="1150.3" y="181" width="8.7" height="15.0" fill="rgb(235,27,22)" rx="2" ry="2" />
+<text  x="1153.31" y="191.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::call_element_destructor@plt (14,257,511 samples, 0.26%)</title><rect x="672.5" y="293" width="3.1" height="15.0" fill="rgb(206,53,16)" rx="2" ry="2" />
+<text  x="675.47" y="303.5" ></text>
+</g>
+<g >
+<title>__gnu_cxx::__is_null_pointer&lt;char&gt;@plt (14,132,766 samples, 0.26%)</title><rect x="618.8" y="357" width="3.1" height="15.0" fill="rgb(216,125,3)" rx="2" ry="2" />
+<text  x="621.81" y="367.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (16,195,958 samples, 0.30%)</title><rect x="1159.0" y="325" width="3.5" height="15.0" fill="rgb(212,218,52)" rx="2" ry="2" />
+<text  x="1162.02" y="335.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (19,236,921 samples, 0.35%)</title><rect x="48.6" y="293" width="4.2" height="15.0" fill="rgb(241,196,11)" rx="2" ry="2" />
+<text  x="51.62" y="303.5" ></text>
+</g>
+<g >
+<title>operator new (20,357,039 samples, 0.37%)</title><rect x="550.3" y="293" width="4.4" height="15.0" fill="rgb(230,6,6)" rx="2" ry="2" />
+<text  x="553.26" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::call_element_destructor (25,620,533 samples, 0.47%)</title><rect x="315.6" y="309" width="5.6" height="15.0" fill="rgb(237,62,26)" rx="2" ry="2" />
+<text  x="318.61" y="319.5" ></text>
+</g>
+<g >
+<title>std::count_if&lt;__gnu_cxx::__normal_iterator&lt;char*, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt;, iox::runtime::IpcMessage::setMessage (21,486,338 samples, 0.40%)</title><rect x="220.1" y="245" width="4.6" height="15.0" fill="rgb(220,50,51)" rx="2" ry="2" />
+<text  x="223.07" y="255.5" ></text>
+</g>
+<g >
+<title>iox::cxx::convert::fromString&lt;int&gt; (317,846,195 samples, 5.85%)</title><rect x="630.8" y="357" width="69.0" height="15.0" fill="rgb(234,35,42)" rx="2" ry="2" />
+<text  x="633.79" y="367.5" >iox::cx..</text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="437" width="2.8" height="15.0" fill="rgb(225,61,50)" rx="2" ry="2" />
+<text  x="1190.16" y="447.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;true&gt;::IteratorBase@plt (13,249,616 samples, 0.24%)</title><rect x="131.5" y="309" width="2.8" height="15.0" fill="rgb(228,95,25)" rx="2" ry="2" />
+<text  x="134.47" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::cxx::optional&lt;iox::popo::InterfacePortData&gt;, 4ul&gt;::begin@plt (100,544,588 samples, 1.85%)</title><rect x="803.4" y="293" width="21.9" height="15.0" fill="rgb(244,134,0)" rx="2" ry="2" />
+<text  x="806.44" y="303.5" >i..</text>
+</g>
+<g >
+<title>[libc-2.30.so] (10,176,254 samples, 0.19%)</title><rect x="745.4" y="517" width="2.2" height="15.0" fill="rgb(248,217,24)" rx="2" ry="2" />
+<text  x="748.42" y="527.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="245" width="3.8" height="15.0" fill="rgb(247,121,10)" rx="2" ry="2" />
+<text  x="1028.45" y="255.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (59,607,310 samples, 1.10%)</title><rect x="1133.3" y="213" width="12.9" height="15.0" fill="rgb(228,31,43)" rx="2" ry="2" />
+<text  x="1136.26" y="223.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (19,236,921 samples, 0.35%)</title><rect x="48.6" y="213" width="4.2" height="15.0" fill="rgb(214,180,31)" rx="2" ry="2" />
+<text  x="51.62" y="223.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortIntrospection&lt;iox::popo::PublisherPortUser, iox::popo::SubscriberPortUser&gt;::PortData::prepareTopic (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="245" width="0.4" height="15.0" fill="rgb(218,46,42)" rx="2" ry="2" />
+<text  x="1183.15" y="255.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortRouDi::~SubscriberPortRouDi (21,489,237 samples, 0.40%)</title><rect x="1032.6" y="293" width="4.7" height="15.0" fill="rgb(211,173,6)" rx="2" ry="2" />
+<text  x="1035.62" y="303.5" ></text>
+</g>
+<g >
+<title>recvfrom (712,882,983 samples, 13.12%)</title><rect x="384.1" y="309" width="154.8" height="15.0" fill="rgb(240,40,4)" rx="2" ry="2" />
+<text  x="387.10" y="319.5" >recvfrom</text>
+</g>
+<g >
+<title>strlen@plt (23,359,200 samples, 0.43%)</title><rect x="596.5" y="341" width="5.1" height="15.0" fill="rgb(243,6,33)" rx="2" ry="2" />
+<text  x="599.52" y="351.5" ></text>
+</g>
+<g >
+<title>mrp_join_timer (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="165" width="3.8" height="15.0" fill="rgb(249,173,4)" rx="2" ry="2" />
+<text  x="1028.45" y="175.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::methodCallbackCaller&lt;void, iox::roudi::PortIntrospection&lt;iox::popo::PublisherPortUser, iox::popo::SubscriberPortUser&gt;&gt; (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="293" width="0.4" height="15.0" fill="rgb(213,33,29)" rx="2" ry="2" />
+<text  x="1183.15" y="303.5" ></text>
+</g>
+<g >
+<title>__clock_gettime (15,758,278 samples, 0.29%)</title><rect x="107.1" y="245" width="3.4" height="15.0" fill="rgb(226,211,15)" rx="2" ry="2" />
+<text  x="110.09" y="255.5" ></text>
+</g>
+<g >
+<title>std::forward&lt;iox::posix::PosixCallResult&lt;int&gt; &gt;@plt (18,106,380 samples, 0.33%)</title><rect x="542.5" y="309" width="3.9" height="15.0" fill="rgb(219,42,17)" rx="2" ry="2" />
+<text  x="545.47" y="319.5" ></text>
+</g>
+<g >
+<title>iox::algorithm::doesContainValue&lt;int&gt;@plt (18,359,495 samples, 0.34%)</title><rect x="567.1" y="325" width="4.0" height="15.0" fill="rgb(253,116,24)" rx="2" ry="2" />
+<text  x="570.09" y="335.5" ></text>
+</g>
+<g >
+<title>Mon+Discover (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="533" width="432.6" height="15.0" fill="rgb(212,176,41)" rx="2" ry="2" />
+<text  x="750.63" y="543.5" >Mon+Discover</text>
+</g>
+<g >
+<title>iox::runtime::IpcInterfaceBase::setMessageFromString@plt (35,514,501 samples, 0.65%)</title><rect x="201.1" y="293" width="7.7" height="15.0" fill="rgb(227,102,48)" rx="2" ry="2" />
+<text  x="204.11" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator==&lt;false&gt; (76,816,897 samples, 1.41%)</title><rect x="114.8" y="309" width="16.7" height="15.0" fill="rgb(213,24,46)" rx="2" ry="2" />
+<text  x="117.79" y="319.5" ></text>
+</g>
+<g >
+<title>__skb_wait_for_more_packets (276,057,365 samples, 5.08%)</title><rect x="422.8" y="165" width="59.9" height="15.0" fill="rgb(244,164,24)" rx="2" ry="2" />
+<text  x="425.79" y="175.5" >__skb_..</text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::cxx::optional&lt;iox::popo::PublisherPortData&gt;, 128ul&gt;::end (20,691,289 samples, 0.38%)</title><rect x="957.3" y="293" width="4.5" height="15.0" fill="rgb(222,27,9)" rx="2" ry="2" />
+<text  x="960.33" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::not_null&lt;iox::popo::PublisherPortData* const, void&gt;::not_null (22,221,253 samples, 0.41%)</title><rect x="775.3" y="325" width="4.8" height="15.0" fill="rgb(217,155,25)" rx="2" ry="2" />
+<text  x="778.30" y="335.5" ></text>
+</g>
+<g >
+<title>del_timer_sync (20,238,499 samples, 0.37%)</title><rect x="426.7" y="133" width="4.4" height="15.0" fill="rgb(234,196,35)" rx="2" ry="2" />
+<text  x="429.70" y="143.5" ></text>
+</g>
+<g >
+<title>std::allocator&lt;char&gt;::allocator@plt (20,270,466 samples, 0.37%)</title><rect x="245.3" y="277" width="4.4" height="15.0" fill="rgb(238,51,49)" rx="2" ry="2" />
+<text  x="248.27" y="287.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::smart_lock&lt;iox::roudi::ProcessManager, std::mutex&gt;::operator (20,882,331 samples, 0.38%)</title><rect x="747.6" y="389" width="4.6" height="15.0" fill="rgb(211,227,24)" rx="2" ry="2" />
+<text  x="750.63" y="399.5" ></text>
+</g>
+<g >
+<title>std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void  (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="469" width="735.4" height="15.0" fill="rgb(211,77,2)" rx="2" ry="2" />
+<text  x="13.00" y="479.5" >std::thread::_State_impl&lt;std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator==&lt;false&gt; (18,254,516 samples, 0.34%)</title><rect x="1095.3" y="325" width="4.0" height="15.0" fill="rgb(239,2,46)" rx="2" ry="2" />
+<text  x="1098.30" y="335.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::PosixCallDetails&lt;long long&gt;::PosixCallDetails@plt (44,530,395 samples, 0.82%)</title><rect x="686.2" y="325" width="9.6" height="15.0" fill="rgb(209,48,14)" rx="2" ry="2" />
+<text  x="689.15" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::capro::CaproMessage&gt;::and_then (16,525,073 samples, 0.30%)</title><rect x="825.3" y="309" width="3.6" height="15.0" fill="rgb(228,144,0)" rx="2" ry="2" />
+<text  x="828.27" y="319.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (643,514,768 samples, 11.84%)</title><rect x="390.3" y="229" width="139.8" height="15.0" fill="rgb(214,61,16)" rx="2" ry="2" />
+<text  x="393.33" y="239.5" >el0_svc_common.co..</text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator++@plt (61,266,124 samples, 1.13%)</title><rect x="70.9" y="341" width="13.3" height="15.0" fill="rgb(226,199,40)" rx="2" ry="2" />
+<text  x="73.94" y="351.5" ></text>
+</g>
+<g >
+<title>do_futex (19,236,921 samples, 0.35%)</title><rect x="48.6" y="181" width="4.2" height="15.0" fill="rgb(211,38,54)" rx="2" ry="2" />
+<text  x="51.62" y="191.5" ></text>
+</g>
+<g >
+<title>__schedule (20,762,799 samples, 0.38%)</title><rect x="788.1" y="261" width="4.5" height="15.0" fill="rgb(246,138,10)" rx="2" ry="2" />
+<text  x="791.05" y="271.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::cxx::optional&lt;iox::popo::SubscriberPortData&gt;, 256ul&gt;::end@plt (12,997,043 samples, 0.24%)</title><rect x="1086.1" y="293" width="2.8" height="15.0" fill="rgb(224,128,3)" rx="2" ry="2" />
+<text  x="1089.11" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (223,644,955 samples, 4.12%)</title><rect x="201.1" y="325" width="48.6" height="15.0" fill="rgb(248,229,7)" rx="2" ry="2" />
+<text  x="204.11" y="335.5" >iox:..</text>
+</g>
+<g >
+<title>iox::roudi::PortManager::handlePublisherPorts (646,631,807 samples, 11.90%)</title><rect x="825.3" y="325" width="140.4" height="15.0" fill="rgb(223,131,22)" rx="2" ry="2" />
+<text  x="828.27" y="335.5" >iox::roudi::PortM..</text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::~expected@plt (22,953,644 samples, 0.42%)</title><rect x="703.4" y="357" width="5.0" height="15.0" fill="rgb(220,209,51)" rx="2" ry="2" />
+<text  x="706.37" y="367.5" ></text>
+</g>
+<g >
+<title>operator new@plt (12,958,244 samples, 0.24%)</title><rect x="554.7" y="293" width="2.8" height="15.0" fill="rgb(242,56,9)" rx="2" ry="2" />
+<text  x="557.68" y="303.5" ></text>
+</g>
+<g >
+<title>work_pending (16,195,958 samples, 0.30%)</title><rect x="1159.0" y="341" width="3.5" height="15.0" fill="rgb(206,188,19)" rx="2" ry="2" />
+<text  x="1162.02" y="351.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallBuilder&lt;long long, char const*, char**, int&gt;::PosixCallBuilder (15,018,289 samples, 0.28%)</title><rect x="679.3" y="325" width="3.2" height="15.0" fill="rgb(230,85,9)" rx="2" ry="2" />
+<text  x="682.25" y="335.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="485" width="735.4" height="15.0" fill="rgb(207,168,34)" rx="2" ry="2" />
+<text  x="13.00" y="495.5" >[libstdc++.so.6.0.28]</text>
+</g>
+<g >
+<title>iox::cxx::string&lt;100ul&gt;::c_str (21,084,114 samples, 0.39%)</title><rect x="166.2" y="309" width="4.6" height="15.0" fill="rgb(229,29,44)" rx="2" ry="2" />
+<text  x="169.24" y="319.5" ></text>
+</g>
+<g >
+<title>simple_copy_to_iter (49,562,809 samples, 0.91%)</title><rect x="503.0" y="133" width="10.7" height="15.0" fill="rgb(221,30,19)" rx="2" ry="2" />
+<text  x="505.95" y="143.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (10,176,254 samples, 0.19%)</title><rect x="745.4" y="501" width="2.2" height="15.0" fill="rgb(236,68,6)" rx="2" ry="2" />
+<text  x="748.42" y="511.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="293" width="25.7" height="15.0" fill="rgb(209,126,17)" rx="2" ry="2" />
+<text  x="1136.26" y="303.5" >d..</text>
+</g>
+<g >
+<title>scm_stat_del (38,688,194 samples, 0.71%)</title><rect x="398.7" y="181" width="8.4" height="15.0" fill="rgb(223,178,41)" rx="2" ry="2" />
+<text  x="401.65" y="191.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;int&gt;::ignoreErrnos&lt;int&gt; (17,783,050 samples, 0.33%)</title><rect x="546.4" y="341" width="3.9" height="15.0" fill="rgb(223,45,17)" rx="2" ry="2" />
+<text  x="549.40" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::cxx::MethodCallbackError&gt;::call_element_destructor@plt (25,189,807 samples, 0.46%)</title><rect x="1181.7" y="341" width="5.5" height="15.0" fill="rgb(250,51,1)" rx="2" ry="2" />
+<text  x="1184.69" y="351.5" ></text>
+</g>
+<g >
+<title>el0_irq_naked (22,894,967 samples, 0.42%)</title><rect x="715.4" y="341" width="5.0" height="15.0" fill="rgb(253,125,46)" rx="2" ry="2" />
+<text  x="718.42" y="351.5" ></text>
+</g>
+<g >
+<title>iox::popo::PublisherPortRouDi::~PublisherPortRouDi (16,633,557 samples, 0.31%)</title><rect x="890.9" y="309" width="3.6" height="15.0" fill="rgb(250,154,17)" rx="2" ry="2" />
+<text  x="893.89" y="319.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (14,461,834 samples, 0.27%)</title><rect x="367.6" y="261" width="3.1" height="15.0" fill="rgb(224,161,44)" rx="2" ry="2" />
+<text  x="370.61" y="271.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="325" width="0.4" height="15.0" fill="rgb(228,189,38)" rx="2" ry="2" />
+<text  x="1183.15" y="335.5" ></text>
+</g>
+<g >
+<title>std::chrono::_V2::steady_clock::now (28,399,216 samples, 0.52%)</title><rect x="1120.0" y="341" width="6.2" height="15.0" fill="rgb(205,73,26)" rx="2" ry="2" />
+<text  x="1123.04" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator==&lt;false&gt;@plt (15,214,966 samples, 0.28%)</title><rect x="1109.6" y="341" width="3.3" height="15.0" fill="rgb(227,156,25)" rx="2" ry="2" />
+<text  x="1112.61" y="351.5" ></text>
+</g>
+<g >
+<title>mrp_join_timer_arm (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="149" width="3.8" height="15.0" fill="rgb(238,98,42)" rx="2" ry="2" />
+<text  x="1028.45" y="159.5" ></text>
+</g>
+<g >
+<title>[libc-2.30.so] (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="517" width="2.8" height="15.0" fill="rgb(209,212,14)" rx="2" ry="2" />
+<text  x="1190.16" y="527.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (643,514,768 samples, 11.84%)</title><rect x="390.3" y="245" width="139.8" height="15.0" fill="rgb(254,183,43)" rx="2" ry="2" />
+<text  x="393.33" y="255.5" >do_el0_svc</text>
+</g>
+<g >
+<title>process_timeout (14,747,673 samples, 0.27%)</title><rect x="954.1" y="165" width="3.2" height="15.0" fill="rgb(244,83,13)" rx="2" ry="2" />
+<text  x="957.13" y="175.5" ></text>
+</g>
+<g >
+<title>iox::cxx::make_optional&lt;iox::roudi::Process*, iox::roudi::Process*&gt; (14,404,680 samples, 0.27%)</title><rect x="147.6" y="325" width="3.1" height="15.0" fill="rgb(206,166,0)" rx="2" ry="2" />
+<text  x="150.56" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::vector&lt;iox::popo::PublisherPortData*, 128ul&gt;::pop_back (21,514,185 samples, 0.40%)</title><rect x="832.4" y="293" width="4.7" height="15.0" fill="rgb(238,111,35)" rx="2" ry="2" />
+<text  x="835.39" y="303.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkSender&lt;iox::popo::ChunkSenderData&lt;8u, iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt; &gt;::~ChunkSender (16,633,557 samples, 0.31%)</title><rect x="890.9" y="293" width="3.6" height="15.0" fill="rgb(220,147,31)" rx="2" ry="2" />
+<text  x="893.89" y="303.5" ></text>
+</g>
+<g >
+<title>__gthread_active_p (22,084,552 samples, 0.41%)</title><rect x="43.8" y="309" width="4.8" height="15.0" fill="rgb(221,181,14)" rx="2" ry="2" />
+<text  x="46.82" y="319.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkQueuePopper&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt;::~ChunkQueuePopper (21,489,237 samples, 0.40%)</title><rect x="1032.6" y="277" width="4.7" height="15.0" fill="rgb(237,13,32)" rx="2" ry="2" />
+<text  x="1035.62" y="287.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="421" width="0.4" height="15.0" fill="rgb(235,99,40)" rx="2" ry="2" />
+<text  x="1183.15" y="431.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::~basic_string@plt (16,664,399 samples, 0.31%)</title><rect x="738.0" y="389" width="3.6" height="15.0" fill="rgb(213,20,53)" rx="2" ry="2" />
+<text  x="740.97" y="399.5" ></text>
+</g>
+<g >
+<title>fput (14,086,270 samples, 0.26%)</title><rect x="395.6" y="181" width="3.1" height="15.0" fill="rgb(235,139,39)" rx="2" ry="2" />
+<text  x="398.60" y="191.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::isInvalidIterator (18,254,516 samples, 0.34%)</title><rect x="1095.3" y="309" width="4.0" height="15.0" fill="rgb(243,19,7)" rx="2" ry="2" />
+<text  x="1098.30" y="319.5" ></text>
+</g>
+<g >
+<title>memcg_slab_free_hook (27,607,574 samples, 0.51%)</title><rect x="521.0" y="69" width="6.0" height="15.0" fill="rgb(232,89,38)" rx="2" ry="2" />
+<text  x="524.03" y="79.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator* (17,753,717 samples, 0.33%)</title><rect x="134.3" y="325" width="3.9" height="15.0" fill="rgb(237,170,2)" rx="2" ry="2" />
+<text  x="137.34" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::make_optional&lt;iox::roudi::Process*, iox::roudi::Process*&gt; (18,639,999 samples, 0.34%)</title><rect x="94.5" y="341" width="4.0" height="15.0" fill="rgb(232,36,35)" rx="2" ry="2" />
+<text  x="97.50" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::expected (84,876,542 samples, 1.56%)</title><rect x="302.7" y="341" width="18.5" height="15.0" fill="rgb(252,188,3)" rx="2" ry="2" />
+<text  x="305.74" y="351.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;long long&gt;::evaluate (72,387,263 samples, 1.33%)</title><rect x="663.5" y="341" width="15.8" height="15.0" fill="rgb(249,100,26)" rx="2" ry="2" />
+<text  x="666.53" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (18,034,951 samples, 0.33%)</title><rect x="263.2" y="357" width="3.9" height="15.0" fill="rgb(243,52,22)" rx="2" ry="2" />
+<text  x="266.20" y="367.5" ></text>
+</g>
+<g >
+<title>skb_release_all (41,583,483 samples, 0.77%)</title><rect x="521.0" y="133" width="9.1" height="15.0" fill="rgb(212,129,9)" rx="2" ry="2" />
+<text  x="524.03" y="143.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortManager::handleSubscriberPorts (551,054,432 samples, 10.14%)</title><rect x="969.3" y="325" width="119.6" height="15.0" fill="rgb(206,81,54)" rx="2" ry="2" />
+<text  x="972.27" y="335.5" >iox::roudi::Po..</text>
+</g>
+<g >
+<title>__softirqentry_text_start (14,747,673 samples, 0.27%)</title><rect x="954.1" y="213" width="3.2" height="15.0" fill="rgb(215,174,0)" rx="2" ry="2" />
+<text  x="957.13" y="223.5" ></text>
+</g>
+<g >
+<title>__arm64_sys_futex (19,236,921 samples, 0.35%)</title><rect x="48.6" y="197" width="4.2" height="15.0" fill="rgb(245,74,0)" rx="2" ry="2" />
+<text  x="51.62" y="207.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::end (47,239,999 samples, 0.87%)</title><rect x="84.2" y="341" width="10.3" height="15.0" fill="rgb(239,113,25)" rx="2" ry="2" />
+<text  x="87.24" y="351.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (14,461,834 samples, 0.27%)</title><rect x="367.6" y="245" width="3.1" height="15.0" fill="rgb(228,45,37)" rx="2" ry="2" />
+<text  x="370.61" y="255.5" ></text>
+</g>
+<g >
+<title>el0_svc_common.constprop.0 (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="277" width="25.7" height="15.0" fill="rgb(218,195,3)" rx="2" ry="2" />
+<text  x="1136.26" y="287.5" >e..</text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::run (1,654,700,102 samples, 30.45%)</title><rect x="766.9" y="373" width="359.3" height="15.0" fill="rgb(222,140,4)" rx="2" ry="2" />
+<text  x="769.90" y="383.5" >iox::roudi::ProcessManager::run</text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (16,920,003 samples, 0.31%)</title><rect x="1129.6" y="357" width="3.7" height="15.0" fill="rgb(216,117,34)" rx="2" ry="2" />
+<text  x="1132.59" y="367.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::isInvalidIterOrDifferentLists (14,697,482 samples, 0.27%)</title><rect x="119.7" y="293" width="3.2" height="15.0" fill="rgb(217,17,27)" rx="2" ry="2" />
+<text  x="122.68" y="303.5" ></text>
+</g>
+<g >
+<title>work_pending (40,704,949 samples, 0.75%)</title><rect x="530.1" y="293" width="8.8" height="15.0" fill="rgb(215,136,9)" rx="2" ry="2" />
+<text  x="533.06" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::MethodCallback&lt;void&gt;::operator (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="373" width="0.4" height="15.0" fill="rgb(229,202,24)" rx="2" ry="2" />
+<text  x="1183.15" y="383.5" ></text>
+</g>
+<g >
+<title>iox::posix::internal::createPosixCallBuilder&lt;long long, char const*, char**, int&gt; (76,314,263 samples, 1.40%)</title><rect x="679.3" y="341" width="16.5" height="15.0" fill="rgb(223,103,5)" rx="2" ry="2" />
+<text  x="682.25" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="341" width="0.4" height="15.0" fill="rgb(219,22,42)" rx="2" ry="2" />
+<text  x="1183.15" y="351.5" ></text>
+</g>
+<g >
+<title>work_pending (20,762,799 samples, 0.38%)</title><rect x="788.1" y="309" width="4.5" height="15.0" fill="rgb(215,27,27)" rx="2" ry="2" />
+<text  x="791.05" y="319.5" ></text>
+</g>
+<g >
+<title>std::atomic&lt;bool&gt;::load (201,496,117 samples, 3.71%)</title><rect x="985.5" y="293" width="43.7" height="15.0" fill="rgb(236,182,23)" rx="2" ry="2" />
+<text  x="988.48" y="303.5" >std:..</text>
+</g>
+<g >
+<title>iox::concurrent::smart_lock&lt;iox::roudi::ProcessManager, std::mutex&gt;::operator (20,050,952 samples, 0.37%)</title><rect x="759.3" y="373" width="4.4" height="15.0" fill="rgb(217,11,33)" rx="2" ry="2" />
+<text  x="762.31" y="383.5" ></text>
+</g>
+<g >
+<title>std::mutex::lock@plt (14,722,420 samples, 0.27%)</title><rect x="52.8" y="341" width="3.2" height="15.0" fill="rgb(224,119,10)" rx="2" ry="2" />
+<text  x="55.79" y="351.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::~variant (47,267,277 samples, 0.87%)</title><rect x="252.9" y="341" width="10.3" height="15.0" fill="rgb(251,226,40)" rx="2" ry="2" />
+<text  x="255.93" y="351.5" ></text>
+</g>
+<g >
+<title>__softirqentry_text_start (22,894,967 samples, 0.42%)</title><rect x="715.4" y="277" width="5.0" height="15.0" fill="rgb(230,154,44)" rx="2" ry="2" />
+<text  x="718.42" y="287.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="501" width="0.4" height="15.0" fill="rgb(211,99,29)" rx="2" ry="2" />
+<text  x="1183.15" y="511.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::_M_construct&lt;char const*&gt;@plt (44,876,819 samples, 0.83%)</title><rect x="605.7" y="357" width="9.7" height="15.0" fill="rgb(254,201,32)" rx="2" ry="2" />
+<text  x="608.68" y="367.5" ></text>
+</g>
+<g >
+<title>iox::roudi::RouDi::monitorAndDiscoveryUpdate (1,883,898,754 samples, 34.67%)</title><rect x="759.3" y="389" width="409.1" height="15.0" fill="rgb(242,0,16)" rx="2" ry="2" />
+<text  x="762.31" y="399.5" >iox::roudi::RouDi::monitorAndDiscoveryUpdate</text>
+</g>
+<g >
+<title>iox::popo::PublisherPortRouDi::tryGetCaProMessage (58,037,216 samples, 1.07%)</title><rect x="900.1" y="293" width="12.6" height="15.0" fill="rgb(233,80,43)" rx="2" ry="2" />
+<text  x="903.07" y="303.5" ></text>
+</g>
+<g >
+<title>std::this_thread::sleep_for&lt;long, std::ratio&lt;1l, 1000l&gt; &gt; (16,732,521 samples, 0.31%)</title><rect x="1176.5" y="389" width="3.7" height="15.0" fill="rgb(230,15,7)" rx="2" ry="2" />
+<text  x="1179.52" y="399.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="485" width="6.6" height="15.0" fill="rgb(215,99,15)" rx="2" ry="2" />
+<text  x="1183.63" y="495.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::call_at_index&lt;0ul, iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::destructor@plt (20,704,565 samples, 0.38%)</title><rect x="298.2" y="309" width="4.5" height="15.0" fill="rgb(225,17,12)" rx="2" ry="2" />
+<text  x="301.25" y="319.5" ></text>
+</g>
+<g >
+<title>unix_dgram_recvmsg (566,471,493 samples, 10.42%)</title><rect x="407.1" y="181" width="123.0" height="15.0" fill="rgb(229,211,50)" rx="2" ry="2" />
+<text  x="410.05" y="191.5" >unix_dgram_recv..</text>
+</g>
+<g >
+<title>run_timer_softirq (14,747,673 samples, 0.27%)</title><rect x="954.1" y="197" width="3.2" height="15.0" fill="rgb(232,117,16)" rx="2" ry="2" />
+<text  x="957.13" y="207.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortMultiProducer::~SubscriberPortMultiProducer (17,050,337 samples, 0.31%)</title><rect x="795.9" y="325" width="3.7" height="15.0" fill="rgb(238,107,37)" rx="2" ry="2" />
+<text  x="798.92" y="335.5" ></text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="405" width="6.6" height="15.0" fill="rgb(252,144,28)" rx="2" ry="2" />
+<text  x="1183.63" y="415.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::begin (43,103,788 samples, 0.79%)</title><rect x="138.2" y="325" width="9.4" height="15.0" fill="rgb(246,75,5)" rx="2" ry="2" />
+<text  x="141.20" y="335.5" ></text>
+</g>
+<g >
+<title>std::__invoke&lt;void  (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="421" width="432.6" height="15.0" fill="rgb(250,43,28)" rx="2" ry="2" />
+<text  x="750.63" y="431.5" >std::__invoke&lt;void </text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="405" width="2.8" height="15.0" fill="rgb(251,10,27)" rx="2" ry="2" />
+<text  x="1190.16" y="415.5" ></text>
+</g>
+<g >
+<title>fpsimd_load_state (16,195,958 samples, 0.30%)</title><rect x="1159.0" y="293" width="3.5" height="15.0" fill="rgb(208,120,42)" rx="2" ry="2" />
+<text  x="1162.02" y="303.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::end@plt (16,285,123 samples, 0.30%)</title><rect x="232.2" y="261" width="3.6" height="15.0" fill="rgb(218,175,48)" rx="2" ry="2" />
+<text  x="235.23" y="271.5" ></text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::monitorProcesses (14,923,962 samples, 0.27%)</title><rect x="763.7" y="373" width="3.2" height="15.0" fill="rgb(205,14,45)" rx="2" ry="2" />
+<text  x="766.66" y="383.5" ></text>
+</g>
+<g >
+<title>std::operator&amp;@plt (17,969,516 samples, 0.33%)</title><rect x="730.9" y="373" width="3.9" height="15.0" fill="rgb(206,214,42)" rx="2" ry="2" />
+<text  x="733.87" y="383.5" ></text>
+</g>
+<g >
+<title>iox::cxx::string&lt;100ul&gt;::operator==&lt;100ul&gt; (33,412,574 samples, 0.61%)</title><rect x="159.0" y="325" width="7.2" height="15.0" fill="rgb(242,148,54)" rx="2" ry="2" />
+<text  x="161.98" y="335.5" ></text>
+</g>
+<g >
+<title>iox::roudi::ProcessManager::updateLivelinessOfProcess (529,367,360 samples, 9.74%)</title><rect x="70.9" y="357" width="115.0" height="15.0" fill="rgb(219,190,23)" rx="2" ry="2" />
+<text  x="73.94" y="367.5" >iox::roudi::Pr..</text>
+</g>
+<g >
+<title>futex_wait_setup (19,236,921 samples, 0.35%)</title><rect x="48.6" y="149" width="4.2" height="15.0" fill="rgb(208,65,12)" rx="2" ry="2" />
+<text  x="51.62" y="159.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::getElementAtIndex[abi:cxx11] (70,794,590 samples, 1.30%)</title><rect x="615.4" y="373" width="15.4" height="15.0" fill="rgb(225,215,9)" rx="2" ry="2" />
+<text  x="618.42" y="383.5" ></text>
+</g>
+<g >
+<title>iox::popo::BasePort::toBeDestroyed (201,496,117 samples, 3.71%)</title><rect x="985.5" y="309" width="43.7" height="15.0" fill="rgb(251,112,33)" rx="2" ry="2" />
+<text  x="988.48" y="319.5" >iox:..</text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;long&gt;, iox::posix::PosixCallResult&lt;long&gt; &gt;::expected (33,315,283 samples, 0.61%)</title><rect x="550.3" y="325" width="7.2" height="15.0" fill="rgb(248,73,37)" rx="2" ry="2" />
+<text  x="553.26" y="335.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="437" width="0.4" height="15.0" fill="rgb(254,172,3)" rx="2" ry="2" />
+<text  x="1183.15" y="447.5" ></text>
+</g>
+<g >
+<title>__handle_domain_irq (29,044,458 samples, 0.53%)</title><rect x="574.3" y="277" width="6.3" height="15.0" fill="rgb(241,171,14)" rx="2" ry="2" />
+<text  x="577.28" y="287.5" ></text>
+</g>
+<g >
+<title>schedule (20,762,799 samples, 0.38%)</title><rect x="788.1" y="277" width="4.5" height="15.0" fill="rgb(216,166,37)" rx="2" ry="2" />
+<text  x="791.05" y="287.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (223,644,955 samples, 4.12%)</title><rect x="201.1" y="341" width="48.6" height="15.0" fill="rgb(224,161,5)" rx="2" ry="2" />
+<text  x="204.11" y="351.5" >iox:..</text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::getPrevIdx@plt (14,697,482 samples, 0.27%)</title><rect x="119.7" y="277" width="3.2" height="15.0" fill="rgb(226,118,26)" rx="2" ry="2" />
+<text  x="122.68" y="287.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long long&gt;, iox::posix::PosixCallResult&lt;long long&gt; &gt;::get_at_index&lt;0ul&gt;@plt (39,422,190 samples, 0.73%)</title><rect x="647.2" y="341" width="8.6" height="15.0" fill="rgb(221,166,46)" rx="2" ry="2" />
+<text  x="650.21" y="351.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortIntrospection&lt;iox::popo::PublisherPortUser, iox::popo::SubscriberPortUser&gt;::sendSubscriberPortsData (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="261" width="0.4" height="15.0" fill="rgb(248,110,2)" rx="2" ry="2" />
+<text  x="1183.15" y="271.5" ></text>
+</g>
+<g >
+<title>std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;::clear@plt (13,730,953 samples, 0.25%)</title><rect x="217.1" y="245" width="3.0" height="15.0" fill="rgb(209,86,52)" rx="2" ry="2" />
+<text  x="220.09" y="255.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::capro::CaproMessage&gt;::and_then@plt (16,250,667 samples, 0.30%)</title><rect x="828.9" y="309" width="3.5" height="15.0" fill="rgb(242,61,19)" rx="2" ry="2" />
+<text  x="831.86" y="319.5" ></text>
+</g>
+<g >
+<title>_copy_to_iter (49,562,809 samples, 0.91%)</title><rect x="503.0" y="117" width="10.7" height="15.0" fill="rgb(223,80,53)" rx="2" ry="2" />
+<text  x="505.95" y="127.5" ></text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::getElementAtIndex[abi:cxx11]@plt (14,730,203 samples, 0.27%)</title><rect x="734.8" y="389" width="3.2" height="15.0" fill="rgb(248,17,14)" rx="2" ry="2" />
+<text  x="737.77" y="399.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;iox::posix::PosixCallResult&lt;long&gt;, iox::posix::PosixCallResult&lt;long&gt; &gt;::variant&lt;0ul, iox::posix::PosixCallResult&lt;long&gt; &gt;@plt (44,188,587 samples, 0.81%)</title><rect x="557.5" y="325" width="9.6" height="15.0" fill="rgb(230,142,22)" rx="2" ry="2" />
+<text  x="560.50" y="335.5" ></text>
+</g>
+<g >
+<title>iox_setsockopt (14,241,816 samples, 0.26%)</title><rect x="358.6" y="325" width="3.1" height="15.0" fill="rgb(215,11,44)" rx="2" ry="2" />
+<text  x="361.63" y="335.5" ></text>
+</g>
+<g >
+<title>__schedule (219,555,436 samples, 4.04%)</title><rect x="435.1" y="117" width="47.6" height="15.0" fill="rgb(248,138,36)" rx="2" ry="2" />
+<text  x="438.06" y="127.5" >__sc..</text>
+</g>
+<g >
+<title>gic_handle_irq (22,894,967 samples, 0.42%)</title><rect x="715.4" y="325" width="5.0" height="15.0" fill="rgb(221,210,47)" rx="2" ry="2" />
+<text  x="718.42" y="335.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortMultiProducer::~SubscriberPortMultiProducer@plt (982,557 samples, 0.02%)</title><rect x="799.6" y="325" width="0.2" height="15.0" fill="rgb(254,37,31)" rx="2" ry="2" />
+<text  x="802.62" y="335.5" ></text>
+</g>
+<g >
+<title>setsockopt (41,582,648 samples, 0.77%)</title><rect x="361.7" y="325" width="9.0" height="15.0" fill="rgb(254,70,31)" rx="2" ry="2" />
+<text  x="364.72" y="335.5" ></text>
+</g>
+<g >
+<title>[libstdc++.so.6.0.28] (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="485" width="2.8" height="15.0" fill="rgb(219,116,14)" rx="2" ry="2" />
+<text  x="1190.16" y="495.5" ></text>
+</g>
+<g >
+<title>iox::posix::UnixDomainSocket::timedReceive[abi:cxx11]@plt (66,434,211 samples, 1.22%)</title><rect x="17.5" y="373" width="14.4" height="15.0" fill="rgb(238,147,14)" rx="2" ry="2" />
+<text  x="20.48" y="383.5" ></text>
+</g>
+<g >
+<title>std::__invoke_impl&lt;void, void  (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="405" width="735.4" height="15.0" fill="rgb(240,112,21)" rx="2" ry="2" />
+<text  x="13.00" y="415.5" >std::__invoke_impl&lt;void, void </text>
+</g>
+<g >
+<title>_raw_spin_unlock_irqrestore (14,747,673 samples, 0.27%)</title><rect x="954.1" y="133" width="3.2" height="15.0" fill="rgb(214,84,18)" rx="2" ry="2" />
+<text  x="957.13" y="143.5" ></text>
+</g>
+<g >
+<title>iox::roudi::PortPool::getInterfacePortDataList (100,544,588 samples, 1.85%)</title><rect x="803.4" y="309" width="21.9" height="15.0" fill="rgb(243,181,20)" rx="2" ry="2" />
+<text  x="806.44" y="319.5" >i..</text>
+</g>
+<g >
+<title>strtoll (18,360,977 samples, 0.34%)</title><rect x="695.8" y="341" width="4.0" height="15.0" fill="rgb(254,22,30)" rx="2" ry="2" />
+<text  x="698.82" y="351.5" ></text>
+</g>
+<g >
+<title>iox::popo::SubscriberPortRouDi::SubscriberPortRouDi (15,565,088 samples, 0.29%)</title><rect x="1029.2" y="293" width="3.4" height="15.0" fill="rgb(252,19,16)" rx="2" ry="2" />
+<text  x="1032.24" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::cxx::MethodCallbackError&gt;::~expected (25,189,807 samples, 0.46%)</title><rect x="1181.7" y="357" width="5.5" height="15.0" fill="rgb(223,201,34)" rx="2" ry="2" />
+<text  x="1184.69" y="367.5" ></text>
+</g>
+<g >
+<title>do_el0_svc (19,236,921 samples, 0.35%)</title><rect x="48.6" y="229" width="4.2" height="15.0" fill="rgb(223,115,17)" rx="2" ry="2" />
+<text  x="51.62" y="239.5" ></text>
+</g>
+<g >
+<title>fpsimd_restore_current_state (15,610,795 samples, 0.29%)</title><rect x="535.5" y="261" width="3.4" height="15.0" fill="rgb(215,107,11)" rx="2" ry="2" />
+<text  x="538.51" y="271.5" ></text>
+</g>
+<g >
+<title>el0_sync_handler (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="325" width="25.7" height="15.0" fill="rgb(236,163,47)" rx="2" ry="2" />
+<text  x="1136.26" y="335.5" >e..</text>
+</g>
+<g >
+<title>iox::runtime::IpcMessage::setMessage (73,292,239 samples, 1.35%)</title><rect x="208.8" y="261" width="15.9" height="15.0" fill="rgb(229,203,50)" rx="2" ry="2" />
+<text  x="211.82" y="271.5" ></text>
+</g>
+<g >
+<title>iox::popo::BasePort::~BasePort (18,817,515 samples, 0.35%)</title><rect x="874.6" y="309" width="4.1" height="15.0" fill="rgb(234,157,11)" rx="2" ry="2" />
+<text  x="877.58" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::getDataPtrFromIdx (17,753,717 samples, 0.33%)</title><rect x="134.3" y="309" width="3.9" height="15.0" fill="rgb(225,44,29)" rx="2" ry="2" />
+<text  x="137.34" y="319.5" ></text>
+</g>
+<g >
+<title>fpsimd_restore_current_state (16,195,958 samples, 0.30%)</title><rect x="1159.0" y="309" width="3.5" height="15.0" fill="rgb(223,80,23)" rx="2" ry="2" />
+<text  x="1162.02" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator==&lt;false&gt; (34,613,504 samples, 0.64%)</title><rect x="1102.1" y="341" width="7.5" height="15.0" fill="rgb(208,32,15)" rx="2" ry="2" />
+<text  x="1105.09" y="351.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (1,991,914,587 samples, 36.65%)</title><rect x="747.6" y="437" width="432.6" height="15.0" fill="rgb(219,29,0)" rx="2" ry="2" />
+<text  x="750.63" y="447.5" >std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>__clock_gettime (28,399,216 samples, 0.52%)</title><rect x="1120.0" y="325" width="6.2" height="15.0" fill="rgb(223,10,4)" rx="2" ry="2" />
+<text  x="1123.04" y="335.5" ></text>
+</g>
+<g >
+<title>iox::cxx::variant&lt;std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt;, iox::posix::IpcChannelError&gt;::variant&lt;0ul, std::__cxx11::basic_string&lt;char, std::char_traits&lt;char&gt;, std::allocator&lt;char&gt; &gt; &gt; (25,620,533 samples, 0.47%)</title><rect x="315.6" y="325" width="5.6" height="15.0" fill="rgb(229,130,0)" rx="2" ry="2" />
+<text  x="318.61" y="335.5" ></text>
+</g>
+<g >
+<title>operator new@plt (16,949,943 samples, 0.31%)</title><rect x="675.6" y="293" width="3.7" height="15.0" fill="rgb(225,28,13)" rx="2" ry="2" />
+<text  x="678.57" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::IteratorBase&lt;false&gt;::operator!=&lt;false&gt; (90,066,513 samples, 1.66%)</title><rect x="114.8" y="325" width="19.5" height="15.0" fill="rgb(250,59,5)" rx="2" ry="2" />
+<text  x="117.79" y="335.5" ></text>
+</g>
+<g >
+<title>iox::concurrent::PeriodicTask&lt;iox::cxx::MethodCallback&lt;void&gt; &gt;::run (2,209,028 samples, 0.04%)</title><rect x="1180.2" y="389" width="0.4" height="15.0" fill="rgb(208,27,53)" rx="2" ry="2" />
+<text  x="1183.15" y="399.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="501" width="2.8" height="15.0" fill="rgb(236,29,53)" rx="2" ry="2" />
+<text  x="1190.16" y="511.5" ></text>
+</g>
+<g >
+<title>std::mutex::unlock (34,477,060 samples, 0.63%)</title><rect x="36.3" y="341" width="7.5" height="15.0" fill="rgb(217,123,17)" rx="2" ry="2" />
+<text  x="39.33" y="351.5" ></text>
+</g>
+<g >
+<title>el0_irq_naked (29,044,458 samples, 0.53%)</title><rect x="574.3" y="309" width="6.3" height="15.0" fill="rgb(218,154,53)" rx="2" ry="2" />
+<text  x="577.28" y="319.5" ></text>
+</g>
+<g >
+<title>[libpthread-2.30.so] (16,282,913 samples, 0.30%)</title><rect x="380.6" y="309" width="3.5" height="15.0" fill="rgb(221,192,47)" rx="2" ry="2" />
+<text  x="383.57" y="319.5" ></text>
+</g>
+<g >
+<title>iox::roudi::FixedPositionContainer&lt;iox::popo::PublisherPortData, 128ul&gt;::content (17,769,487 samples, 0.33%)</title><rect x="961.8" y="293" width="3.9" height="15.0" fill="rgb(239,179,5)" rx="2" ry="2" />
+<text  x="964.82" y="303.5" ></text>
+</g>
+<g >
+<title>do_nanosleep (118,622,539 samples, 2.18%)</title><rect x="1133.3" y="229" width="25.7" height="15.0" fill="rgb(212,117,43)" rx="2" ry="2" />
+<text  x="1136.26" y="239.5" >d..</text>
+</g>
+<g >
+<title>sock_setsockopt (14,461,834 samples, 0.27%)</title><rect x="367.6" y="197" width="3.1" height="15.0" fill="rgb(240,147,29)" rx="2" ry="2" />
+<text  x="370.61" y="207.5" ></text>
+</g>
+<g >
+<title>iox::cxx::list&lt;iox::roudi::Process, 300ul&gt;::getNextIdx (21,851,075 samples, 0.40%)</title><rect x="142.8" y="309" width="4.8" height="15.0" fill="rgb(211,132,33)" rx="2" ry="2" />
+<text  x="145.81" y="319.5" ></text>
+</g>
+<g >
+<title>__gthread_mutex_lock (19,236,921 samples, 0.35%)</title><rect x="48.6" y="309" width="4.2" height="15.0" fill="rgb(222,8,52)" rx="2" ry="2" />
+<text  x="51.62" y="319.5" ></text>
+</g>
+<g >
+<title>iox::cxx::optional&lt;iox::popo::PublisherPortData&gt;::has_value (205,654,455 samples, 3.78%)</title><rect x="912.7" y="293" width="44.6" height="15.0" fill="rgb(221,197,30)" rx="2" ry="2" />
+<text  x="915.67" y="303.5" >iox:..</text>
+</g>
+<g >
+<title>iox::posix::UnixDomainSocket::timedReceive[abi:cxx11] (1,492,466,529 samples, 27.46%)</title><rect x="277.5" y="357" width="324.1" height="15.0" fill="rgb(237,100,18)" rx="2" ry="2" />
+<text  x="280.52" y="367.5" >iox::posix::UnixDomainSocket::timedReceive[..</text>
+</g>
+<g >
+<title>ProcessIntr (30,058,686 samples, 0.55%)</title><rect x="1180.6" y="533" width="6.6" height="15.0" fill="rgb(205,212,2)" rx="2" ry="2" />
+<text  x="1183.63" y="543.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (17,444,357 samples, 0.32%)</title><rect x="1025.4" y="261" width="3.8" height="15.0" fill="rgb(221,63,38)" rx="2" ry="2" />
+<text  x="1028.45" y="271.5" ></text>
+</g>
+<g >
+<title>_raw_spin_unlock_irq (219,555,436 samples, 4.04%)</title><rect x="435.1" y="101" width="47.6" height="15.0" fill="rgb(212,78,53)" rx="2" ry="2" />
+<text  x="438.06" y="111.5" >_raw..</text>
+</g>
+<g >
+<title>iox::concurrent::smart_lock&lt;iox::roudi::ProcessManager, std::mutex&gt;::operator (56,043,893 samples, 1.03%)</title><rect x="43.8" y="357" width="12.2" height="15.0" fill="rgb(247,69,45)" rx="2" ry="2" />
+<text  x="46.82" y="367.5" ></text>
+</g>
+<g >
+<title>iox::posix::PosixCallEvaluator&lt;long&gt;::evaluate (77,503,870 samples, 1.43%)</title><rect x="550.3" y="341" width="16.8" height="15.0" fill="rgb(227,38,13)" rx="2" ry="2" />
+<text  x="553.26" y="351.5" ></text>
+</g>
+<g >
+<title>iox::popo::ChunkSender&lt;iox::popo::ChunkSenderData&lt;8u, iox::popo::ChunkDistributorData&lt;iox::DefaultChunkDistributorConfig, iox::popo::ThreadSafePolicy, iox::popo::ChunkQueuePusher&lt;iox::popo::ChunkQueueData&lt;iox::DefaultChunkQueueConfig, iox::popo::ThreadSafePolicy&gt; &gt; &gt; &gt; &gt;::ChunkSender (18,063,965 samples, 0.33%)</title><rect x="887.0" y="293" width="3.9" height="15.0" fill="rgb(211,149,35)" rx="2" ry="2" />
+<text  x="889.96" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::internal::ReturnSuccess&lt;void&gt;::call&lt;iox::cxx::function_ref&lt;void  (4,698,055 samples, 0.09%)</title><rect x="1180.7" y="357" width="1.0" height="15.0" fill="rgb(225,130,25)" rx="2" ry="2" />
+<text  x="1183.67" y="367.5" ></text>
+</g>
+<g >
+<title>irq_exit (29,044,458 samples, 0.53%)</title><rect x="574.3" y="261" width="6.3" height="15.0" fill="rgb(232,130,36)" rx="2" ry="2" />
+<text  x="577.28" y="271.5" ></text>
+</g>
+<g >
+<title>std::thread::_Invoker&lt;std::tuple&lt;void  (3,386,848,357 samples, 62.32%)</title><rect x="10.0" y="453" width="735.4" height="15.0" fill="rgb(213,102,41)" rx="2" ry="2" />
+<text  x="13.00" y="463.5" >std::thread::_Invoker&lt;std::tuple&lt;void </text>
+</g>
+<g >
+<title>iox::cxx::internal::Require (17,594,634 samples, 0.32%)</title><rect x="127.6" y="277" width="3.9" height="15.0" fill="rgb(212,30,23)" rx="2" ry="2" />
+<text  x="130.64" y="287.5" ></text>
+</g>
+<g >
+<title>__errno_location@plt (38,912,625 samples, 0.72%)</title><rect x="630.8" y="341" width="8.4" height="15.0" fill="rgb(235,36,26)" rx="2" ry="2" />
+<text  x="633.79" y="351.5" ></text>
+</g>
+<g >
+<title>do_notify_resume (40,704,949 samples, 0.75%)</title><rect x="530.1" y="277" width="8.8" height="15.0" fill="rgb(205,63,7)" rx="2" ry="2" />
+<text  x="533.06" y="287.5" ></text>
+</g>
+<g >
+<title>iox::runtime::stringToIpcMessageType (412,650,464 samples, 7.59%)</title><rect x="630.8" y="373" width="89.6" height="15.0" fill="rgb(217,95,35)" rx="2" ry="2" />
+<text  x="633.79" y="383.5" >iox::runti..</text>
+</g>
+<g >
+<title>xxxIPC-msg-process (13,088,027 samples, 0.24%)</title><rect x="1187.2" y="533" width="2.8" height="15.0" fill="rgb(222,33,19)" rx="2" ry="2" />
+<text  x="1190.16" y="543.5" ></text>
+</g>
+<g >
+<title>irq_exit (22,894,967 samples, 0.42%)</title><rect x="715.4" y="293" width="5.0" height="15.0" fill="rgb(218,115,51)" rx="2" ry="2" />
+<text  x="718.42" y="303.5" ></text>
+</g>
+<g >
+<title>iox::cxx::expected&lt;iox::posix::PosixCallResult&lt;int&gt;, iox::posix::PosixCallResult&lt;int&gt; &gt;::~expected (43,200,362 samples, 0.79%)</title><rect x="293.4" y="341" width="9.3" height="15.0" fill="rgb(228,189,12)" rx="2" ry="2" />
+<text  x="296.36" y="351.5" ></text>
+</g>
+<g >
+<title>gic_handle_irq (14,747,673 samples, 0.27%)</title><rect x="954.1" y="261" width="3.2" height="15.0" fill="rgb(242,193,48)" rx="2" ry="2" />
+<text  x="957.13" y="271.5" ></text>
+</g>
+<g >
+<title>iox::cxx::function_ref&lt;void  (1,999,130 samples, 0.04%)</title><rect x="1180.2" y="309" width="0.4" height="15.0" fill="rgb(249,191,4)" rx="2" ry="2" />
+<text  x="1183.15" y="319.5" ></text>
+</g>
+<g >
+<title>irq_exit (14,747,673 samples, 0.27%)</title><rect x="954.1" y="229" width="3.2" height="15.0" fill="rgb(208,60,25)" rx="2" ry="2" />
+<text  x="957.13" y="239.5" ></text>
+</g>
+</g>
+</svg>
